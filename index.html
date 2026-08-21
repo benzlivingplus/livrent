@@ -321,6 +321,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--maroon-soft);out
 .user-name{font-weight:700;font-size:14px;flex:1;}
 .user-email{font-size:12px;color:var(--ink-soft);}
 .user-role-select{font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:var(--radius);font-family:inherit;}
+.user-delete-btn{font-size:12px;padding:5px 9px;border:1px solid #ecc9c5;background:#fff;color:var(--danger);border-radius:var(--radius);font-family:inherit;cursor:pointer;font-weight:700;}
+.user-delete-btn:hover{background:#fff4f2;}
 .create-user-form{margin-top:10px;border-top:1px solid var(--line);padding-top:12px;}
 .create-user-form h4{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase;}
 .create-user-form input,.create-user-form select{margin-bottom:6px;}
@@ -1348,6 +1350,10 @@ function showApp(){
   const badge = document.getElementById('hdrRoleBadge');
   badge.textContent = currentUser.role==='admin'?'Admin':'Staff';
   badge.className = 'role-badge '+(currentUser.role==='admin'?'admin':'staff');
+  // Reset privileged UI state on every login/session.
+  // This prevents the Admin tab from remaining visible when an Admin logs out
+  // and a Staff account logs in without a full page refresh.
+  document.getElementById('adminTab').style.display='none';
   if(currentUser.role==='admin'){
     document.getElementById('adminTab').style.display='';
     listenDeleteRequests();
@@ -1785,6 +1791,7 @@ async function loadDocList(){
     });
     const isAdmin = currentUser.role==='admin';
     docListEl.innerHTML = docs.map(rec=>{
+      const isOwn = rec.createdBy===currentUser.uid;
       const d = rec.data||{};
       const total = grandTotal(d);
       const badge = docTypeBadge(d.docType);
@@ -2166,32 +2173,106 @@ function listenDeleteRequests(){
    USER MANAGEMENT (Admin)
    ============================================================ */
 async function loadUsers(){
+  if(currentUser?.role!=='admin') return;
   const snap = await db.collection('users').get();
   const userListEl = document.getElementById('userList');
   if(!userListEl) return;
+
   userListEl.innerHTML = snap.docs.map(d=>{
     const u=d.data();
+    const isSelf = d.id===currentUser.uid;
     return `<div class="user-row">
-      <div>
+      <div style="min-width:180px;flex:1">
         <div class="user-name">${escHtml(u.displayName||'—')}</div>
         <div class="user-email">${escHtml(u.email||'—')}</div>
       </div>
-      <select class="user-role-select" data-uid="${d.id}" ${d.id===currentUser.uid?'disabled':''}>
+      <select class="user-role-select" data-uid="${d.id}" data-old-role="${escAttr(u.role||'staff')}" ${isSelf?'disabled':''}>
         <option value="staff" ${u.role==='staff'?'selected':''}>Staff</option>
         <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
       </select>
+      ${isSelf
+        ? `<span style="font-size:11px;color:var(--ink-soft);padding:4px 3px;">บัญชีของคุณ</span>`
+        : `<button type="button" class="user-delete-btn" data-delete-user="${d.id}" data-user-name="${escAttr(u.displayName||u.email||'ผู้ใช้')}">ลบ</button>`
+      }
     </div>`;
   }).join('');
+
+  // Changing a role requires an explicit confirmation.
   userListEl.querySelectorAll('.user-role-select:not([disabled])').forEach(sel=>{
-    sel.addEventListener('change', async ()=>{ await db.collection('users').doc(sel.dataset.uid).update({role:sel.value}); });
+    sel.addEventListener('change', async ()=>{
+      const uid = sel.dataset.uid;
+      const oldRole = sel.dataset.oldRole || 'staff';
+      const newRole = sel.value;
+      if(newRole===oldRole) return;
+
+      const snapNow = await db.collection('users').doc(uid).get();
+      if(!snapNow.exists){
+        await loadUsers();
+        alert('ไม่พบผู้ใช้งานนี้แล้ว');
+        return;
+      }
+      const target = snapNow.data()||{};
+      sel.value = oldRole;
+
+      showConfirm(
+        'ยืนยันเปลี่ยนสิทธิ์',
+        `ต้องการเปลี่ยนสิทธิ์ "${target.displayName||target.email||'ผู้ใช้งาน'}" จาก ${oldRole==='admin'?'Admin':'Staff'} เป็น ${newRole==='admin'?'Admin':'Staff'} ใช่ไหม?`,
+        async ()=>{
+          try{
+            await db.collection('users').doc(uid).update({
+              role:newRole,
+              roleUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+              roleUpdatedBy:currentUser.uid,
+              roleUpdatedByName:currentUser.displayName
+            });
+            await loadUsers();
+            alert('เปลี่ยนสิทธิ์เรียบร้อยแล้ว');
+          }catch(e){
+            await loadUsers();
+            alert('เปลี่ยนสิทธิ์ไม่สำเร็จ: '+e.message);
+          }
+        }
+      );
+    });
+  });
+
+  // Admin can remove another user from the LIVRENT user registry.
+  userListEl.querySelectorAll('.user-delete-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const uid = btn.dataset.deleteUser;
+      if(uid===currentUser.uid) return;
+
+      const snapNow = await db.collection('users').doc(uid).get();
+      if(!snapNow.exists){ await loadUsers(); return; }
+      const target = snapNow.data()||{};
+      const targetName = target.displayName||target.email||'ผู้ใช้งาน';
+
+      showConfirm(
+        'ยืนยันลบผู้ใช้งาน',
+        `ต้องการลบ "${targetName}" ออกจากระบบ LIVRENT ใช่ไหม? ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบ LIVRENT ได้อีกจนกว่าจะมีการสร้างสิทธิ์ผู้ใช้งานใหม่`,
+        async ()=>{
+          try{
+            // Remove the user's LIVRENT profile. The Firebase Auth account itself
+            // cannot be deleted securely from browser code; without an Admin SDK/
+            // Cloud Function, deleting the profile is the safe client-side action.
+            await db.collection('users').doc(uid).delete();
+            await loadUsers();
+            alert('ลบผู้ใช้งานออกจากระบบเรียบร้อยแล้ว');
+          }catch(e){
+            alert('ลบผู้ใช้งานไม่สำเร็จ: '+e.message);
+          }
+        }
+      );
+    });
   });
 }
 
 // Create new user (secondary Firebase app)
 document.getElementById('createUserBtn').addEventListener('click', async ()=>{
+  if(currentUser?.role!=='admin'){ alert('เฉพาะ Admin เท่านั้น'); return; }
   const name     = document.getElementById('newUserName').value.trim();
   const rawUser  = document.getElementById('newUserEmail').value.trim().toLowerCase();
-  const email    = toEmail(rawUser); // แปลง username → email@livrent.local
+  const email    = toEmail(rawUser);
   const pwd      = document.getElementById('newUserPwd').value;
   const role     = document.getElementById('newUserRole').value;
   const errEl    = document.getElementById('createUserErr');
@@ -2202,12 +2283,13 @@ document.getElementById('createUserBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('createUserBtn');
   btn.disabled=true; btn.textContent='กำลังสร้าง...';
   try {
-    // Secondary app to avoid signing out current user
     const secondary = firebase.initializeApp(firebaseConfig, 'secondary_'+Date.now());
     const secAuth   = secondary.auth();
     const cred      = await secAuth.createUserWithEmailAndPassword(email, pwd);
-    // เก็บ username (ไม่มี @domain) ให้อ่านง่าย
-    await db.collection('users').doc(cred.user.uid).set({ displayName:name, username:rawUser, email, role, createdAt:firebase.firestore.FieldValue.serverTimestamp() });
+    await db.collection('users').doc(cred.user.uid).set({
+      displayName:name, username:rawUser, email, role,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
     await secAuth.signOut();
     await secondary.delete();
     errEl.style.color='var(--green)'; errEl.textContent='✓ สร้างบัญชีสำเร็จ';
@@ -2533,11 +2615,15 @@ document.getElementById('generateImgBtn').addEventListener('click', async ()=>{
    TAB SWITCHING
    ============================================================ */
 function switchTab(tab, pushState=true){
+  // Staff must never open the Admin/Management view, even by URL/hash.
+  if(tab==='admin' && currentUser?.role!=='admin'){
+    tab='library';
+  }
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(tab+'View').classList.add('active');
   if(tab==='library') loadDocList();
-  if(tab==='admin'){ loadUsers(); }
+  if(tab==='admin' && currentUser?.role==='admin') loadUsers();
   if(tab==='editor') setTimeout(scalePreview,100);
   if(tab==='stats') loadStats();
   if(pushState) try{ history.pushState({tab},'',(location.pathname||'/')+'#'+tab); }catch(e){}
