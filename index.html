@@ -495,7 +495,7 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 .dp-doc-inner{width:794px;background:#fff;padding:52px 58px 48px;box-shadow:0 2px 8px rgba(0,0,0,.15);position:relative;}
 #hdrUserName{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-/* ===== VERSION 5: LANGUAGE DROPDOWN ===== */
+/* ===== VERSION 5.7: LANGUAGE DROPDOWN ===== */
 .lang-dropdown{position:relative;display:inline-block;font-size:12px;z-index:20;}
 .lang-dropdown-btn{display:flex;align-items:center;gap:7px;min-width:128px;padding:6px 10px;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.12);color:#fff;font:inherit;cursor:pointer;}
 .login-card .lang-dropdown-btn{background:#fff;border:1px solid #ddd;color:var(--ink);min-width:150px;justify-content:space-between;}
@@ -1755,6 +1755,19 @@ async function saveDocument(){
   } catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); }
 }
 
+// Delete permission helper for Staff:
+// - Admin: handled separately and may delete at any time.
+// - Staff: may directly delete ONLY their own document and ONLY within 5 minutes
+//   from createdAt. Missing/invalid createdAt is treated as not eligible.
+function canStaffDirectDelete(rec){
+  if(!currentUser || currentUser.role!=='staff') return false;
+  if(!rec || rec.createdBy!==currentUser.uid) return false;
+  const createdMs = rec.createdAt?.toMillis ? rec.createdAt.toMillis() : Number(rec.createdAt||0);
+  if(!createdMs || !Number.isFinite(createdMs)) return false;
+  const elapsed = Date.now() - createdMs;
+  return elapsed >= 0 && elapsed < (5*60*1000);
+}
+
 async function loadDocList(){
   const docListEl = document.getElementById('docList');
   docListEl.innerHTML='<div class="lib-empty">กำลังโหลด...</div>';
@@ -1776,14 +1789,11 @@ async function loadDocList(){
       const total = grandTotal(d);
       const badge = docTypeBadge(d.docType);
       const cls   = docTypeClass(d.docType);
-      const isOwn = rec.createdBy === currentUser.uid;
-      const createdMs = rec.createdAt?.toMillis?rec.createdAt.toMillis():0;
-      const withinFiveMin = createdMs && (Date.now()-createdMs)<5*60*1000;
-      // ปุ่มลบ: admin ลบได้เสมอ; staff ลบตัวเองได้ภายใน 5 นาที; หลังจากนั้นขอลบ
+      const canDirectDelete = canStaffDirectDelete(rec);
+      // ปุ่มลบ: Admin ลบได้เสมอ; Staff ลบได้เฉพาะเอกสารของตัวเองภายใน 5 นาที
+      // หลังจาก 5 นาที หรือเป็นเอกสารของคนอื่น = ต้องส่งคำขอลบให้ Admin
       let delBtn='';
-      if(isAdmin){
-        delBtn=`<button data-act="del" data-id="${rec.id}" class="del-btn">ลบ</button>`;
-      } else if(isOwn && withinFiveMin){
+      if(isAdmin || canDirectDelete){
         delBtn=`<button data-act="del" data-id="${rec.id}" class="del-btn">ลบ</button>`;
       } else {
         delBtn=`<button data-act="reqdel" data-id="${rec.id}" data-name="${escAttr(rec.name)}" class="req-del-btn">ขอลบ</button>`;
@@ -1853,10 +1863,10 @@ async function handleDocAction(act, id, name){
       <div style="margin-top:6px;font-size:11px;color:var(--ink-soft)">สร้างโดย: ${escHtml(rec.createdByName||'—')}${rec.updatedByName?' · แก้ไขล่าสุด: '+escHtml(rec.updatedByName):''}</div>`;
     const isAdmin = currentUser.role==='admin';
     const isOwn = rec.createdBy===currentUser.uid;
-    const createdMs = rec.createdAt?.toMillis?rec.createdAt.toMillis():0;
-    const withinFiveMin = createdMs && (Date.now()-createdMs)<5*60*1000;
+    const canDirectDelete = isAdmin || canStaffDirectDelete(rec);
     document.getElementById('dpEditBtn').style.display=(isAdmin||isOwn)?'':'none';
-    document.getElementById('dpDelBtn').textContent=(isAdmin||withinFiveMin)?'ลบ':'ขอลบ';
+    // สำคัญ: Staff ต้องเป็นเจ้าของเอกสาร และสร้างมาไม่เกิน 5 นาที จึงลบตรงได้
+    document.getElementById('dpDelBtn').textContent=canDirectDelete?'ลบ':'ขอลบ';
     document.getElementById('dpMoveWrap').style.display='none';
     const moveSelect = document.getElementById('dpMoveSelect');
     let moveOpts='<option value="">📂 ทั้งหมด</option>';
@@ -1945,6 +1955,26 @@ async function handleDocAction(act, id, name){
     loadDocList(); // โชว์ในคลังทันที ไม่เปิด editor
   }
   if(act==='del'){
+    // Re-check permission from Firestore before actually deleting.
+    // This prevents a stale UI button from allowing a Staff user to delete
+    // after the 5-minute window has expired.
+    const latestSnap = await db.collection('documents').doc(id).get();
+    if(!latestSnap.exists){ alert('ไม่พบเอกสารนี้แล้ว'); await loadFolders(); await loadDocList(); return; }
+    const latestRec = {id, ...latestSnap.data()};
+    const isAdminNow = currentUser?.role==='admin';
+    const allowedNow = isAdminNow || canStaffDirectDelete(latestRec);
+    if(!allowedNow){
+      document.getElementById('docPreviewModal').classList.add('hidden');
+      const requestName = latestRec.name||name||'เอกสาร';
+      showConfirm('หมดเวลาลบโดยตรง','เอกสารนี้เกิน 5 นาทีแล้ว จึงไม่สามารถลบโดยตรงได้ ต้องส่งคำขอให้ Admin อนุมัติ', async ()=>{
+        await db.collection('deleteRequests').add({
+          docId:id, docName:requestName, requestedBy:currentUser.uid, requestedByName:currentUser.displayName,
+          requestedAt:firebase.firestore.FieldValue.serverTimestamp(), status:'pending'
+        });
+        alert('ส่งคำขอลบแล้ว รอ Admin อนุมัติ');
+      });
+      return;
+    }
     document.getElementById('docPreviewModal').classList.add('hidden');
     showConfirm('ลบเอกสาร','ต้องการลบเอกสารนี้ใช่ไหม? (ลบแล้วกู้คืนไม่ได้)', async ()=>{
       await db.collection('documents').doc(id).delete();
