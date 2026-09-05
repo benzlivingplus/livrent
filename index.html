@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="livrent-version" content="5.9.1">
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -564,6 +565,27 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 
 
 .lib-title-wrap{display:flex;align-items:center;min-width:0;}
+/* ===== V5.9.1 folder info / uploads ===== */
+.lib-top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.folder-title-clickable{cursor:pointer}
+.folder-title-clickable:hover{text-decoration:underline;text-underline-offset:3px}
+.folder-info-btn{border:1px solid var(--line);background:#fff;color:var(--maroon);border-radius:50%;width:28px;height:28px;cursor:pointer;font-weight:700}
+.folder-info-btn:hover{background:var(--line-soft)}
+.folder-file-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.folder-file-icon{font-size:24px;line-height:1;flex-shrink:0}
+.folder-file-main{min-width:0;flex:1}
+.folder-file-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folder-file-meta{font-size:10.5px;color:var(--ink-soft);margin-top:3px}
+.folder-file-actions{display:flex;gap:5px;flex-shrink:0}
+.folder-file-actions button{background:none;border:1px solid var(--line);padding:5px 8px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer}
+.folder-file-actions .danger{color:var(--danger);border-color:#ecc9c5}
+.rental-notif-item{padding:11px 12px;border:1px solid var(--line);border-left:4px solid var(--maroon);border-radius:7px;margin-bottom:8px;background:#fff}
+.rental-notif-item.warn{border-left-color:#b7791f}
+.rental-notif-item.danger{border-left-color:var(--danger)}
+.rental-notif-item .rn-title{font-weight:700;font-size:13px}
+.rental-notif-item .rn-sub{font-size:11px;color:var(--ink-soft);margin-top:3px}
+@media(max-width:768px){.lib-top-actions{width:100%;justify-content:stretch}.lib-top-actions .new-doc-btn{flex:1}.folder-file-card{align-items:flex-start}.folder-file-actions{flex-direction:column}.folder-info-btn{width:30px;height:30px}}
+
 .contract-heading-actions{
   display:none;
   align-items:center;
@@ -1198,11 +1220,18 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
     <div class="lib-content">
       <div class="lib-top">
         <div class="lib-title-wrap">
-          <h2 id="libFolderTitle">อื่นๆ</h2>
+          <h2 id="libFolderTitle" class="folder-title-clickable" title="ดูข้อมูลโฟลเดอร์">อื่นๆ</h2>
+          <button id="libFolderInfoBtn" class="folder-info-btn" type="button" title="ข้อมูลโฟลเดอร์">ⓘ</button>
           <span id="contractHeadingActions" class="contract-heading-actions"><button class="contract-btn" type="button" onclick="openRentalContract()">📄 สัญญาเช่า</button></span>
         </div>
-        <button class="new-doc-btn" id="libNewDocBtn">+ สร้างเอกสารใหม่</button>
+        <div class="lib-top-actions">
+          <button class="new-doc-btn" id="libUploadBtn" type="button">⬆ อัปโหลดไฟล์</button>
+          <button class="new-doc-btn" id="libNewDocBtn">+ สร้างเอกสารใหม่</button>
+          <input id="folderFileInput" type="file" multiple style="display:none" accept="*/*">
+        </div>
       </div>
+      <div id="folderUploadStatus" style="display:none;font-size:12px;color:var(--ink-soft);margin:-4px 0 10px;padding:8px 10px;background:var(--line-soft);border-radius:6px"></div>
+      <div id="folderFilesSection"></div>
       <div id="docList"></div>
     </div>
   </div>
@@ -1328,6 +1357,19 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
       <input type="date" id="folderContractStart" style="margin-bottom:6px">
       <label>วันสิ้นสุดสัญญา</label>
       <input type="date" id="folderContractEnd" style="margin-bottom:6px">
+      <label>วันวางบิลค่าเช่าทุกเดือน</label>
+      <select id="folderBillingDay" style="margin-bottom:6px">
+        <option value="">ไม่ระบุ</option>
+        <option value="1">วันที่ 1</option><option value="2">วันที่ 2</option><option value="3">วันที่ 3</option><option value="4">วันที่ 4</option><option value="5">วันที่ 5</option>
+        <option value="6">วันที่ 6</option><option value="7">วันที่ 7</option><option value="8">วันที่ 8</option><option value="9">วันที่ 9</option><option value="10">วันที่ 10</option>
+        <option value="11">วันที่ 11</option><option value="12">วันที่ 12</option><option value="13">วันที่ 13</option><option value="14">วันที่ 14</option><option value="15">วันที่ 15</option>
+        <option value="16">วันที่ 16</option><option value="17">วันที่ 17</option><option value="18">วันที่ 18</option><option value="19">วันที่ 19</option><option value="20">วันที่ 20</option>
+        <option value="21">วันที่ 21</option><option value="22">วันที่ 22</option><option value="23">วันที่ 23</option><option value="24">วันที่ 24</option><option value="25">วันที่ 25</option>
+        <option value="26">วันที่ 26</option><option value="27">วันที่ 27</option><option value="28">วันที่ 28</option><option value="29">วันที่ 29</option><option value="30">วันที่ 30</option><option value="31">วันที่ 31</option>
+      </select>
+      <label>แจ้งเตือนล่วงหน้า (วัน)</label>
+      <input type="number" id="folderBillingReminder" min="0" max="30" value="3" style="margin-bottom:6px">
+      <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">กระดิ่งจะแจ้งก่อนวันวางบิลตามจำนวนวันที่ตั้งไว้ และเตือนวันหมดสัญญา</div>
       <label>ไฟล์ PDF สัญญา (ไม่เกิน 5MB)</label>
       <input type="file" id="folderContractPdf" accept="application/pdf" style="font-size:12px;margin-bottom:4px">
       <div id="folderContractStatus" style="font-size:11px;color:var(--ink-soft);margin-top:2px"></div>
@@ -1340,6 +1382,31 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
     <div class="modal-actions">
       <button class="modal-cancel" id="folderModalCancel">ยกเลิก</button>
       <button class="modal-confirm" id="folderModalConfirm">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FOLDER INFO MODAL v5.9.1 ===== -->
+<div class="modal-overlay hidden" id="folderInfoModal">
+  <div class="modal" style="width:460px;max-width:94vw;max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <h3 id="folderInfoTitle" style="margin:0;flex:1">ข้อมูลโฟลเดอร์</h3>
+      <button id="folderInfoClose" type="button" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft)">×</button>
+    </div>
+    <div id="folderInfoBody"></div>
+  </div>
+</div>
+
+<!-- ===== RENTAL NOTIFICATIONS MODAL v5.9.1 ===== -->
+<div class="modal-overlay hidden" id="rentalNotifModal">
+  <div class="modal" style="width:560px;max-width:94vw;max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0;flex:1">🔔 แจ้งเตือนค่าเช่า / สัญญา</h3>
+      <button id="rentalNotifClose" type="button" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft)">×</button>
+    </div>
+    <div id="rentalNotifList"></div>
+    <div style="margin-top:14px;padding:10px 12px;background:var(--line-soft);border-radius:7px;font-size:11px;color:var(--ink-soft);line-height:1.55">
+      ระบบนี้อ้างอิงจาก <b>วันสิ้นสุดสัญญา</b> และ <b>วันวางบิลค่าเช่ารายเดือน</b> ในโฟลเดอร์บ้านเช่า หากต้องการให้แจ้ง LINE OA อัตโนมัติเมื่อปิดเว็บ ต้องเชื่อม LINE Messaging API ผ่าน Firebase Cloud Functions เพิ่มอีกชั้น (ไม่ควรใส่ Channel Access Token ไว้ใน HTML)
     </div>
   </div>
 </div>
@@ -1903,7 +1970,7 @@ function showApp(){
   document.getElementById('propertyAddress').value = '';
   syncDocLangButtons();
   fullRender();
-  loadFolders();
+  loadFolders().then(()=>refreshRentalNotificationBadge()).catch(()=>{});
 }
 
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
@@ -2254,6 +2321,8 @@ function openNewParentFolder(){
   document.getElementById('folderDescInput').value='';
   document.getElementById('folderContractStart').value='';
   document.getElementById('folderContractEnd').value='';
+  document.getElementById('folderBillingDay').value='';
+  document.getElementById('folderBillingReminder').value='3';
   document.getElementById('folderContractPdf').value='';
   document.getElementById('folderContractStatus').textContent='';
   document.getElementById('folderContractActions').style.display='none';
@@ -2268,6 +2337,8 @@ function openNewChildFolder(parentId){
   document.getElementById('folderDescInput').value='';
   document.getElementById('folderContractStart').value='';
   document.getElementById('folderContractEnd').value='';
+  document.getElementById('folderBillingDay').value='';
+  document.getElementById('folderBillingReminder').value='3';
   document.getElementById('folderContractPdf').value='';
   document.getElementById('folderContractStatus').textContent='';
   document.getElementById('folderContractActions').style.display='none';
@@ -2284,6 +2355,8 @@ function openFolderEdit(fid){
   document.getElementById('folderDescInput').value=f.desc||'';
   document.getElementById('folderContractStart').value=f.contractStart||'';
   document.getElementById('folderContractEnd').value=f.contractEnd||'';
+  document.getElementById('folderBillingDay').value=f.billingDay||'';
+  document.getElementById('folderBillingReminder').value=(f.billingReminderDays===0?0:(f.billingReminderDays||3));
   document.getElementById('folderContractPdf').value='';
   document.getElementById('folderContractStatus').textContent='';
   document.getElementById('folderContractActions').style.display='none';
@@ -2293,10 +2366,156 @@ function openFolderEdit(fid){
     document.getElementById('folderContractActions').style.display='flex';
     document.getElementById('folderContractView').onclick=async()=>{try{const r=await fetch(contractUrl);const b=await r.blob();const u=URL.createObjectURL(b);const w=window.open();if(w)w.document.write('<iframe src="'+u+'" style="width:100%;height:100%;border:none"></iframe>');}catch(e){window.open(contractUrl,'_blank');}};
     document.getElementById('folderContractShare').onclick=async()=>{try{const r=await fetch(contractUrl);const b=await r.blob();const file=new File([b],f.contractPdfName||'contract.pdf',{type:'application/pdf'});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:f.name});return;}const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=f.contractPdfName||'contract.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(u),8000);}catch(e){window.open(contractUrl,'_blank');}};
-    document.getElementById('folderContractClear').onclick=async()=>{if(!confirm(t('confirmDeletePdf')||'ลบไฟล์ PDF?'))return;if(f.contractPdfPath)await deleteStorageContract(f.contractPdfPath);await db.collection('folders').doc(fid).update({contractPdfUrl:firebase.firestore.FieldValue.delete(),contractPdfPath:firebase.firestore.FieldValue.delete(),contractPdfName:firebase.firestore.FieldValue.delete(),contractPdfData:firebase.firestore.FieldValue.delete()});await loadFolders();openFolderEdit(fid);};
+    document.getElementById('folderContractClear').onclick=async()=>{if(!confirm(t('confirmDeletePdf')||'ลบไฟล์ PDF?'))return;if(f.contractPdfPath)await deleteStorageContract(f.contractPdfPath);await db.collection('folders').doc(fid).update({contractPdfUrl:firebase.firestore.FieldValue.delete(),contractPdfPath:firebase.firestore.FieldValue.delete(),contractPdfName:firebase.firestore.FieldValue.delete(),contractPdfData:firebase.firestore.FieldValue.delete(),billingDay:firebase.firestore.FieldValue.delete(),billingReminderDays:firebase.firestore.FieldValue.delete()});await loadFolders();openFolderEdit(fid);};
   }
   document.getElementById('folderModal').classList.remove('hidden');
 }
+
+/* ============================================================
+   FOLDER INFO + ATTACHED FILES — V5.9.1
+   ============================================================ */
+function currentLibraryFolder(){
+  if(typeof currentFolderId==='undefined' || currentFolderId==='__all__' || currentFolderId==='__parent_view__') return null;
+  return Array.isArray(foldersCache) ? (foldersCache.find(f=>f.id===currentFolderId)||null) : null;
+}
+function fmtFileSize(bytes){
+  const n=Number(bytes||0); if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(1)+' KB';
+  return (n/(1024*1024)).toFixed(1)+' MB';
+}
+function fileIcon(name,type){
+  const ext=(name||'').split('.').pop().toLowerCase();
+  if((type||'').startsWith('image/')) return '🖼️';
+  if(ext==='pdf') return '📕';
+  if(['doc','docx'].includes(ext)) return '📘';
+  if(['xls','xlsx','csv'].includes(ext)) return '📗';
+  if(['ppt','pptx'].includes(ext)) return '📙';
+  if(['zip','rar','7z'].includes(ext)) return '🗜️';
+  return '📎';
+}
+async function getFolderFiles(folderId){
+  if(!folderId) return [];
+  const snap=await db.collection('folderFiles').where('folderId','==',folderId).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+    const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
+    const tb=b.createdAt?.toMillis?b.createdAt.toMillis():Number(b.createdAt||0);
+    return tb-ta;
+  });
+}
+async function loadFolderFiles(){
+  const el=document.getElementById('folderFilesSection');
+  if(!el) return;
+  const folder=currentLibraryFolder();
+  if(!folder){ el.innerHTML=''; return; }
+  try{
+    const files=await getFolderFiles(folder.id);
+    if(!files.length){el.innerHTML='';return;}
+    const canDelete=['admin','staff'].includes(String(currentUser?.role||'').toLowerCase());
+    el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--maroon);margin:6px 0 8px">📎 ไฟล์แนบในโฟลเดอร์ (${files.length})</div>`+
+      files.map(f=>`<div class="folder-file-card" data-file-id="${escAttr(f.id)}">
+        <div class="folder-file-icon">${fileIcon(f.name,f.contentType)}</div>
+        <div class="folder-file-main"><div class="folder-file-name" title="${escAttr(f.name||'')} ">${escHtml(f.name||'ไฟล์')}</div><div class="folder-file-meta">${fmtFileSize(f.size)} · ${escHtml(f.uploadedByName||'—')} · ${f.createdAt?.toDate?f.createdAt.toDate().toLocaleString('th-TH'):'—'}</div></div>
+        <div class="folder-file-actions"><button data-file-open="${escAttr(f.id)}">เปิด</button>${canDelete?`<button class="danger" data-file-delete="${escAttr(f.id)}">ลบ</button>`:''}</div>
+      </div>`).join('');
+    el.querySelectorAll('[data-file-open]').forEach(b=>b.addEventListener('click',async()=>{
+      const f=files.find(x=>x.id===b.dataset.fileOpen); if(!f?.url)return;
+      window.open(f.url,'_blank','noopener,noreferrer');
+    }));
+    el.querySelectorAll('[data-file-delete]').forEach(b=>b.addEventListener('click',async()=>{
+      const f=files.find(x=>x.id===b.dataset.fileDelete); if(!f)return;
+      if(!confirm(`ลบไฟล์ "${f.name||'ไฟล์'}" ?`))return;
+      b.disabled=true;
+      try{
+        if(f.storagePath) await storage.ref(f.storagePath).delete().catch(()=>{});
+        await db.collection('folderFiles').doc(f.id).delete();
+        await loadFolderFiles();
+        await refreshFolderInfoIfOpen();
+      }catch(e){alert('ลบไฟล์ไม่สำเร็จ: '+e.message);b.disabled=false;}
+    }));
+  }catch(e){el.innerHTML=`<div style="font-size:11px;color:var(--danger);padding:8px 0">โหลดไฟล์แนบไม่สำเร็จ: ${escHtml(e.message)}</div>`;}
+}
+async function uploadFolderFiles(fileList){
+  const folder=currentLibraryFolder();
+  if(!folder){alert('กรุณาเข้าโฟลเดอร์ย่อยก่อนอัปโหลดไฟล์');return;}
+  if(!currentUser || !['admin','staff'].includes(String(currentUser.role||'').toLowerCase())){alert('ไม่มีสิทธิ์อัปโหลดไฟล์');return;}
+  const files=Array.from(fileList||[]);
+  if(!files.length)return;
+  const status=document.getElementById('folderUploadStatus');
+  status.style.display='block';
+  let done=0;
+  try{
+    for(const file of files){
+      if(file.size>10*1024*1024) throw new Error(`ไฟล์ "${file.name}" ใหญ่เกิน 10 MB`);
+      status.textContent=`กำลังอัปโหลด ${file.name} (${done+1}/${files.length}) ...`;
+      const safe=(file.name||'file').replace(/[^a-zA-Z0-9._-]+/g,'_');
+      const path=`folderFiles/${folder.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
+      const snap=await storage.ref(path).put(file,{contentType:file.type||'application/octet-stream'});
+      const url=await snap.ref.getDownloadURL();
+      await db.collection('folderFiles').add({folderId:folder.id,name:file.name||safe,size:file.size,contentType:file.type||'application/octet-stream',url,storagePath:path,uploadedBy:currentUser.uid,uploadedByName:currentUser.displayName||currentUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      done++;
+    }
+    status.textContent=`✓ อัปโหลดสำเร็จ ${done} ไฟล์`;
+    await loadFolderFiles();
+    await refreshFolderInfoIfOpen();
+    setTimeout(()=>{status.style.display='none';},2200);
+  }catch(e){status.textContent=`อัปโหลดสำเร็จ ${done}/${files.length} ไฟล์ — ${e.message}`;alert('อัปโหลดไม่สำเร็จ: '+e.message);await loadFolderFiles();}
+}
+function daysFromToday(iso){
+  if(!iso)return null;
+  const a=new Date(); a.setHours(0,0,0,0);
+  const b=new Date(iso+'T00:00:00');
+  return Math.round((b-a)/86400000);
+}
+function nextBillingDate(folder){
+  const day=Number(folder?.billingDay||0); if(!day)return null;
+  const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
+  function make(y,m){ const last=new Date(y,m+1,0).getDate(); return new Date(y,m,Math.min(day,last)); }
+  let d=make(y,m); if(d<new Date(y,m,now.getDate())) d=make(y,m+1);
+  return d;
+}
+function isoLocal(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';}
+function folderTypeLabel(type){return FOLDER_TYPES[type]?.label||type||'—';}
+function openFolderInfo(){
+  const f=currentLibraryFolder();
+  if(!f){alert('กรุณาเข้าโฟลเดอร์ย่อยก่อน');return;}
+  const parent=f.parentId?foldersCache.find(x=>x.id===f.parentId):null;
+  const endDays=daysFromToday(f.contractEnd);
+  const bill=nextBillingDate(f); const billIso=isoLocal(bill); const billDays=billIso?daysFromToday(billIso):null;
+  const body=document.getElementById('folderInfoBody');
+  document.getElementById('folderInfoTitle').textContent=f.name||'ข้อมูลโฟลเดอร์';
+  body.innerHTML=`
+    <div class="info-chip">📂 ${escHtml(f.name||'—')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div class="card" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--ink-soft)">โฟลเดอร์หลัก</div><b>${escHtml(parent?.name||'—')}</b></div>
+      <div class="card" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--ink-soft)">ประเภท</div><b>${escHtml(folderTypeLabel(f.type))}</b></div>
+    </div>
+    <div class="card" style="padding:12px;margin:10px 0 0">
+      <h3 style="margin-bottom:8px">📄 สัญญาเช่า</h3>
+      <div><b>เริ่มสัญญา:</b> ${f.contractStart?formatDate(f.contractStart):'—'}</div>
+      <div><b>หมดสัญญา:</b> ${f.contractEnd?formatDate(f.contractEnd):'—'} ${endDays!==null?`<span class="contract-badge">${endDays<0?'หมดแล้ว':endDays===0?'หมดวันนี้':'อีก '+endDays+' วัน'}</span>`:''}</div>
+      <div><b>วันวางบิลรายเดือน:</b> ${f.billingDay?`วันที่ ${f.billingDay}`:'—'}</div>
+      <div><b>เตือนล่วงหน้า:</b> ${f.billingReminderDays??3} วัน</div>
+      ${billIso?`<div><b>รอบวางบิลถัดไป:</b> ${formatDate(billIso)} <span class="contract-badge">${billDays===0?'วันนี้':'อีก '+billDays+' วัน'}</span></div>`:''}
+    </div>
+    <div class="card" style="padding:12px;margin:10px 0 0"><h3 style="margin-bottom:7px">📝 รายละเอียด</h3><div style="white-space:pre-wrap">${escHtml(f.desc||'—')}</div></div>
+    <div id="folderInfoFileCount" style="font-size:11px;color:var(--ink-soft);margin-top:10px">กำลังนับไฟล์แนบ...</div>`;
+  document.getElementById('folderInfoModal').classList.remove('hidden');
+  refreshFolderInfoIfOpen();
+}
+async function refreshFolderInfoIfOpen(){
+  const modal=document.getElementById('folderInfoModal'); if(!modal||modal.classList.contains('hidden'))return;
+  const f=currentLibraryFolder(); if(!f)return;
+  try{const files=await getFolderFiles(f.id);const el=document.getElementById('folderInfoFileCount');if(el)el.textContent=`📎 ไฟล์แนบ: ${files.length} ไฟล์ (เปิดดู/ดาวน์โหลดได้ และลบได้)`;}catch(e){}
+}
+
+document.getElementById('libFolderInfoBtn')?.addEventListener('click',openFolderInfo);
+document.getElementById('libFolderTitle')?.addEventListener('click',openFolderInfo);
+document.getElementById('folderInfoClose')?.addEventListener('click',()=>document.getElementById('folderInfoModal').classList.add('hidden'));
+document.getElementById('libUploadBtn')?.addEventListener('click',()=>{
+  if(!currentLibraryFolder()){alert('กรุณาเข้าโฟลเดอร์ย่อยก่อนอัปโหลดไฟล์');return;}
+  document.getElementById('folderFileInput')?.click();
+});
+document.getElementById('folderFileInput')?.addEventListener('change',e=>{uploadFolderFiles(e.target.files);e.target.value='';});
 
 document.getElementById('addFolderBtn').addEventListener('click',openNewParentFolder);
 document.getElementById('addFolderMobileBtn')?.addEventListener('click',openNewParentFolder);
@@ -2330,6 +2549,8 @@ document.getElementById('folderModalConfirm').addEventListener('click',async()=>
       if(type==='rent'){
         payload.contractStart=document.getElementById('folderContractStart').value||'';
         payload.contractEnd=document.getElementById('folderContractEnd').value||'';
+        payload.billingDay=document.getElementById('folderBillingDay').value ? Number(document.getElementById('folderBillingDay').value) : null;
+        payload.billingReminderDays=Math.max(0,Math.min(30,Number(document.getElementById('folderBillingReminder').value||3)));
         const pdfFile=document.getElementById('folderContractPdf').files[0];
         if(pdfFile){
           if(pdfFile.type!=='application/pdf'){alert(t('pdfOnly')||'กรุณาเลือกไฟล์ PDF เท่านั้น');return;}
@@ -2586,6 +2807,7 @@ async function loadDocList(keepExisting=false,loadMore=false){
     let more=document.getElementById('docLoadMore');
     if(!more){ more=document.createElement('div'); more.id='docLoadMore'; more.style.cssText='display:flex;justify-content:center;padding:14px 0 24px;'; docListEl.parentElement.appendChild(more); }
     renderLoadMoreButton();
+    if(!loadMore) loadFolderFiles();
   }catch(e){ docListEl.innerHTML='<div class="lib-empty">'+t('loadFailed')+': '+escHtml(e.message)+'</div>'; }
 }
 
@@ -2859,12 +3081,23 @@ document.getElementById('exportPdfBtn').addEventListener('click',async()=>{
     const blob=pdf.output('blob');
     const file=new File([blob],filename,{type:'application/pdf'});
     const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if(mobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:filename});
-    }else if(mobile){
+    // iPad/Safari can reject navigator.share after the async canvas/PDF work
+    // because the original user activation has expired. Do NOT let that error
+    // become a dead end. Prefer opening the generated PDF in a new tab; the
+    // user can then use Safari's own Share button.
+    if(mobile){
       objectUrl=URL.createObjectURL(blob);
-      const w=window.open(objectUrl,'_blank');
-      if(!w){ const a=document.createElement('a');a.href=objectUrl;a.download=filename;document.body.appendChild(a);a.click();a.remove(); }
+      let opened=false;
+      try{
+        const w=window.open(objectUrl,'_blank');
+        opened=!!w;
+      }catch(e){}
+      if(!opened){
+        const a=document.createElement('a');a.href=objectUrl;a.target='_blank';a.rel='noopener';a.download=filename;
+        document.body.appendChild(a);a.click();a.remove();
+      }
+      const hint=document.getElementById('exportTitle');
+      if(hint) hint.textContent='เปิด PDF แล้ว — ใช้ปุ่ม Share ของ iPad เพื่อส่งต่อ';
     }else{ pdf.save(filename); }
   }catch(e){ if(e?.name!=='AbortError') alert('Error: '+e.message); }
   finally{ if(objectUrl)setTimeout(()=>URL.revokeObjectURL(objectUrl),60000); btn.disabled=false;btn.textContent='PDF'; }
@@ -3428,12 +3661,11 @@ document.getElementById('generateBtn').addEventListener('click', async ()=>{
     pdf.addImage(canvas.toDataURL('image/jpeg',0.98),'JPEG',0,0,pW,pH,undefined,'FAST');
     const filename=exportName('pdf');
     const blob=pdf.output('blob');
-    const file=new File([blob],filename,{type:'application/pdf'});
-    if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:filename});
-    }else if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
-      const url=URL.createObjectURL(blob); const w=window.open(url,'_blank');
-      if(!w){const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();}
+    const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if(mobile){
+      const url=URL.createObjectURL(blob);
+      let opened=false; try{ opened=!!window.open(url,'_blank'); }catch(e){}
+      if(!opened){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.download=filename;document.body.appendChild(a);a.click();a.remove();}
       setTimeout(()=>URL.revokeObjectURL(url),60000);
     }else{ pdf.save(filename); }
   } catch(e){alert('Error: '+e.message);}
@@ -3536,7 +3768,41 @@ async function loadStats(){
       `;
   } catch(e){ grid.innerHTML=`<div class="lib-empty">โหลดไม่สำเร็จ: ${escHtml(e.message)}</div>`; }
 }
-document.getElementById('notifBtn').addEventListener('click',()=>switchTab('admin'));
+function rentalNotificationItems(){
+  const out=[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  (foldersCache||[]).filter(f=>String(f.type||'')==='rent').forEach(f=>{
+    if(f.contractEnd){
+      const d=daysFromToday(f.contractEnd);
+      if(d!==null && d<=30) out.push({kind:d<0?'danger':d<=7?'warn':'',sort:d<0?-100+d:d,title:d<0?`สัญญาหมดแล้ว — ${f.name}`:d===0?`สัญญาหมดวันนี้ — ${f.name}`:`สัญญาใกล้หมด — ${f.name}`,sub:`หมดสัญญา ${formatDate(f.contractEnd)} · ${d<0?'เลยกำหนด '+Math.abs(d)+' วัน':d===0?'วันนี้':'เหลือ '+d+' วัน'}`,folderId:f.id});
+    }
+    const bill=nextBillingDate(f); const iso=isoLocal(bill); const d=iso?daysFromToday(iso):null; const remind=Number(f.billingReminderDays??3);
+    if(d!==null && d>=0 && d<=remind) out.push({kind:d===0?'danger':'warn',sort:d,title:d===0?`ถึงวันวางบิลวันนี้ — ${f.name}`:`ใกล้ถึงวันวางบิล — ${f.name}`,sub:`วันวางบิล ${formatDate(iso)} · ${d===0?'วันนี้':'เหลือ '+d+' วัน'} · เตือนล่วงหน้า ${remind} วัน`,folderId:f.id});
+  });
+  return out.sort((a,b)=>a.sort-b.sort);
+}
+function refreshRentalNotificationBadge(){
+  const items=rentalNotificationItems();
+  const dot=document.getElementById('notifDot');
+  const drawerDot=document.getElementById('drawerNotifDot');
+  if(dot) dot.classList.toggle('visible',items.length>0);
+  if(drawerDot) drawerDot.style.display=items.length?'inline-block':'none';
+  return items;
+}
+function openRentalNotifications(){
+  const list=document.getElementById('rentalNotifList'); const items=refreshRentalNotificationBadge();
+  if(!items.length){list.innerHTML='<div class="lib-empty" style="padding:30px 15px">🎉 ตอนนี้ยังไม่มีรายการที่ต้องแจ้งเตือน</div>';}
+  else list.innerHTML=items.map(n=>`<div class="rental-notif-item ${n.kind}"><div class="rn-title">${escHtml(n.title)}</div><div class="rn-sub">${escHtml(n.sub)}</div><button class="contract-btn" style="margin-top:7px" data-notif-folder="${escAttr(n.folderId)}">เปิดโฟลเดอร์</button></div>`).join('');
+  list.querySelectorAll('[data-notif-folder]').forEach(b=>b.addEventListener('click',()=>{
+    const fid=b.dataset.notifFolder; currentParentViewId=null; currentFolderId=fid; renderFolderList(); loadDocList();
+    const f=foldersCache.find(x=>x.id===fid); document.getElementById('libFolderTitle').textContent=f?.name||'';
+    document.getElementById('rentalNotifModal').classList.add('hidden'); closeLibSidebar();
+  }));
+  document.getElementById('rentalNotifModal').classList.remove('hidden');
+}
+document.getElementById('notifBtn').addEventListener('click',openRentalNotifications);
+document.getElementById('rentalNotifClose')?.addEventListener('click',()=>document.getElementById('rentalNotifModal').classList.add('hidden'));
+
 
 // Patch applyLang to also update adminTabLabel + re-render dynamic content
 const _applyLangOrig = applyLang;
@@ -3670,25 +3936,19 @@ async function shareRentalContract(){
   const url = rentalContractCurrentUrl || getCurrentRentalContractUrl();
   if(!url) return;
   try{
-    if(navigator.share){
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const file = new File([blob], 'สัญญาเช่า.pdf', {type:'application/pdf'});
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], title:'สัญญาเช่า'});
-        return;
-      }
-      await navigator.share({title:'สัญญาเช่า', url});
+    // iPad Safari is more reliable when the actual PDF is opened first and
+    // shared from Safari's native Share sheet, rather than calling
+    // navigator.share({files}) after an async fetch.
+    const isIOS=/iPad|iPhone|iPod/i.test(navigator.userAgent);
+    if(isIOS){
+      window.open(url,'_blank');
       return;
     }
-    // Desktop/browser fallback: download the real PDF file so it can be
-    // attached to LINE/Messenger/Email/etc.
+    if(navigator.share){
+      try{ await navigator.share({title:'สัญญาเช่า',url}); return; }catch(e){ if(e?.name==='AbortError') return; }
+    }
     downloadRentalContract();
-    alert('เบราว์เซอร์นี้ไม่รองรับการแชร์ไฟล์โดยตรง ระบบดาวน์โหลด PDF ให้แล้ว สามารถแนบไฟล์ไปยัง LINE หรือแอปอื่นได้ครับ');
-  }catch(e){
-    if(e && e.name === 'AbortError') return;
-    downloadRentalContract();
-  }
+  }catch(e){ if(e?.name!=='AbortError') downloadRentalContract(); }
 }
 
 // Keep the new heading action in sync without changing existing app logic.
@@ -3870,6 +4130,7 @@ const _mLoadFolders=loadFolders;
 loadFolders=async function(){
   await _mLoadFolders.apply(this,arguments);
   syncMobileFolderSelect();
+  if(typeof refreshRentalNotificationBadge==='function') refreshRentalNotificationBadge();
 };
 
 // H. Sync admin badge in bottom nav via MutationObserver
