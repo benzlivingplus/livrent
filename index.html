@@ -565,7 +565,7 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 
 
 .lib-title-wrap{display:flex;align-items:center;min-width:0;}
-/* ===== V5.9.1 folder info / uploads ===== */
+/* ===== V5.9.3 folder info / PDF attachments ===== */
 .lib-top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .folder-title-clickable{cursor:pointer}
 .lib-sort-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -927,6 +927,8 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 <style>
 .folder-level-1{font-weight:700;}
 .folder-level-2{background:rgba(122,16,32,.025);}
+.folder-level-3{background:rgba(122,16,32,.015);color:var(--ink-soft);}
+.folder-level-3.active{color:var(--maroon);background:#FBF3F2;}
 .folder-tool{background:none;border:0;cursor:pointer;font-size:11px;color:var(--ink-soft);padding:2px 3px;line-height:1;flex-shrink:0;}
 .folder-tool:hover{color:var(--maroon);}
 .folder-add-child{font-size:14px;color:var(--maroon);}
@@ -1020,14 +1022,14 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </header>
 
   <div class="tab-bar">
-    <button class="tab-btn active" data-tab="editor" data-i18n="tabEditor">✏️ สร้างเอกสาร</button>
-    <button class="tab-btn" data-tab="library" data-i18n="tabLibrary">📁 คลังเอกสาร</button>
+    <button class="tab-btn active" data-tab="library" data-i18n="tabLibrary">📁 คลังเอกสาร</button>
+    <button class="tab-btn" data-tab="editor" data-i18n="tabEditor">✏️ สร้างเอกสาร</button>
     <button class="tab-btn" data-tab="stats" id="statsTab" data-i18n="tabStats">📊 สถิติ</button>
     <button class="tab-btn" data-tab="admin" id="adminTab" style="display:none"><span id="adminTabLabel">⚙️ จัดการ</span> <span class="tab-badge" id="reqBadge" style="display:none">0</span></button>
   </div>
 
   <!-- ===== EDITOR VIEW ===== -->
-  <div class="view active" id="editorView">
+  <div class="view" id="editorView">
   <!-- MOBILE EDITOR TOGGLE -->
   <div class="mobile-editor-toggle" id="mobileEditorToggle">
     <button class="active" id="meToggleForm" data-i18n="meForm">📝 ฟอร์ม</button>
@@ -1212,7 +1214,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </div><!-- end editorView -->
 
   <!-- ===== LIBRARY VIEW ===== -->
-  <div class="view" id="libraryView">
+  <div class="view active" id="libraryView">
     <!-- MOBILE FOLDER SELECT -->
     <div class="mobile-folder-bar" id="mobileFolderBar">
       <button class="lib-folder-trigger" id="libSidebarTrigger">📂 โฟลเดอร์</button>
@@ -1233,15 +1235,9 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
           <span id="contractHeadingActions" class="contract-heading-actions"><button class="contract-btn" type="button" onclick="openRentalContract()">📄 สัญญาเช่า</button></span>
         </div>
         <div class="lib-top-actions">
-          <button class="new-doc-btn" id="libUploadBtn" type="button">⬆ อัปโหลดไฟล์</button>
+          <button class="new-doc-btn" id="libUploadBtn" type="button" style="display:none">⬆ อัปโหลด PDF</button>
           <button class="new-doc-btn" id="libNewDocBtn">+ สร้างเอกสารใหม่</button>
-          <input id="folderFileInput" type="file" multiple style="display:none" accept="*/*">
-        </div>
-        <div class="lib-sort-row" style="width:100%;justify-content:flex-end">
-          <label for="folderSortSelect">โฟลเดอร์:</label>
-          <select id="folderSortSelect"><option value="name">เรียงตามชื่อ</option><option value="createdAt">เรียงตามวันที่สร้าง</option></select>
-          <label for="docSortSelect">เอกสาร:</label>
-          <select id="docSortSelect"><option value="createdAt">เรียงตามวันที่สร้าง</option><option value="name">เรียงตามชื่อ</option></select>
+          <input id="folderFileInput" type="file" multiple style="display:none" accept="application/pdf,.pdf">
         </div>
       </div>
       <div id="folderUploadStatus" style="display:none;font-size:12px;color:var(--ink-soft);margin:-4px 0 10px;padding:8px 10px;background:var(--line-soft);border-radius:6px"></div>
@@ -1384,7 +1380,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
       <label>แจ้งเตือนล่วงหน้า (วัน)</label>
       <input type="number" id="folderBillingReminder" min="0" max="30" value="3" style="margin-bottom:6px">
       <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">กระดิ่งจะแจ้งก่อนวันวางบิลตามจำนวนวันที่ตั้งไว้ และเตือนวันหมดสัญญา</div>
-      <div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">เอกสารสัญญาและไฟล์อื่น ๆ สามารถอัปโหลดได้จากหน้าภายในโฟลเดอร์</div>
+      
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" id="folderModalCancel">ยกเลิก</button>
@@ -1650,7 +1646,7 @@ Object.assign(LANG.th,{
   rename:'เปลี่ยนชื่อ',sent:'ส่งแล้ว',moveFolder:'ย้ายโฟลเดอร์',selectDestination:'เลือกโฟลเดอร์ปลายทาง',move:'ย้าย',cancel:'ยกเลิก',save:'บันทึก',
   exportDocument:'ส่งออกเอกสาร',selectFolderForDocument:'เลือกโฟลเดอร์ปลายทางสำหรับเอกสารนี้',createFolder:'สร้างโฟลเดอร์',folderName:'ชื่อโฟลเดอร์',type:'ประเภท',
   rent:'เช่า',sale:'ขาย',reno:'ต่อเติม',credit:'สินเชื่อ',details:'รายละเอียด / หมายเหตุ',moreDetails:'รายละเอียดเพิ่มเติม...',
-  contractStart:'วันเริ่มสัญญา',contractEnd:'วันสิ้นสุดสัญญา',contractPdf:'ไฟล์ PDF สัญญา (ไม่เกิน 5MB)',openPdf:'เปิดดู PDF',share:'แชร์',history:'📜 ประวัติการแก้ไข',close:'ปิด',confirm:'ยืนยัน',
+  contractStart:'วันเริ่มสัญญา',contractEnd:'วันสิ้นสุดสัญญา',contractPdf:'ไฟล์ PDF สัญญา (ไม่เกิน 25MB)',openPdf:'เปิดดู PDF',share:'แชร์',history:'📜 ประวัติการแก้ไข',close:'ปิด',confirm:'ยืนยัน',
   loading:'กำลังโหลด...',noDocuments:'ยังไม่มีเอกสารในโฟลเดอร์นี้',pressCreate:'กด "สร้างเอกสารใหม่" เพื่อเริ่มต้น',loadFailed:'โหลดไม่สำเร็จ',
   notFound:'ไม่พบเอกสารนี้แล้ว',deleteExpiredTitle:'หมดเวลาลบโดยตรง',deleteExpiredMsg:'เอกสารนี้เกิน 5 นาทีแล้ว จึงไม่สามารถลบโดยตรงได้ ต้องส่งคำขอให้ Admin อนุมัติ',
   deleteRequestSent:'ส่งคำขอลบแล้ว รอ Admin อนุมัติ',deleteConfirmTitle:'ลบเอกสาร',deleteConfirmMsg:'ต้องการลบเอกสารนี้ใช่ไหม? (ลบแล้วกู้คืนไม่ได้)',
@@ -1669,19 +1665,19 @@ Object.assign(LANG.en,{
   companyreg:'Company Registration No.', companytax:'Company Tax ID No.',
   sysNotif:'Notifications',sysMenu:'Menu',all:'All',other:'Other',folder:'Folder',folderAll:'Other (Unassigned)',rentalContract:'Rental Contract',newDocument:'+ New Document',deleteRequests:'📋 Delete Requests',noDeleteRequests:'No pending requests',
   users:'👥 Users',addNewUser:'➕ Add New User',name:'Name',usernameLabel:'Username',role:'Role',createAccount:'Create Account',document:'Document',issuer:'Issuer',customer:'Client / Recipient',property:'Property Address',total:'Total',createdBy:'Created by',lastEditedBy:'Last edited by',rename:'Rename',sent:'Sent',moveFolder:'Move Folder',selectDestination:'Select destination folder',move:'Move',cancel:'Cancel',save:'Save',
-  exportDocument:'Export Document',selectFolderForDocument:'Select destination folder for this document',createFolder:'Create Folder',folderName:'Folder Name',type:'Type',rent:'Rent',sale:'Sale',reno:'Renovation',credit:'Loan',details:'Details / Notes',moreDetails:'Additional details...',contractStart:'Contract Start',contractEnd:'Contract End',contractPdf:'Contract PDF (max 5MB)',openPdf:'Open PDF',share:'Share',history:'📜 Edit History',close:'Close',confirm:'Confirm',loading:'Loading...',noDocuments:'No documents in this folder',pressCreate:'Click "New Document" to get started',loadFailed:'Failed to load',notFound:'Document not found',deleteExpiredTitle:'Direct deletion expired',deleteExpiredMsg:'This document is older than 5 minutes and cannot be deleted directly. A request must be sent to Admin for approval.',deleteRequestSent:'Delete request sent. Waiting for Admin approval.',deleteConfirmTitle:'Delete Document',deleteConfirmMsg:'Delete this document? (This cannot be undone)',requestDeleteTitle:'Request Delete',requestDeleteMsg:'Send a delete request for "{name}" to Admin for approval?',requestSent:'Request sent. Waiting for Admin approval.',noHistory:'No edit history',updatedDocument:'Document updated',copiedFrom:'Copied from: ',copyPrefix:'(Copy) ',movingFailed:'Failed to move folder',deleteFailed:'Delete failed',adminOnly:'Admin only',noUser:'User not found',confirmRole:'Confirm Role Change',roleChange:'Change "{name}" from {oldRole} to {newRole}?',roleChanged:'Role changed successfully',roleChangeFailed:'Role change failed',confirmDeleteUser:'Confirm Delete User',deleteUserMsg:'Delete "{name}" from LIVRENT? This user will no longer be able to sign in until a new user permission is created.',userDeleted:'User deleted successfully',userDeleteFailed:'Failed to delete user',fillAll:'Please complete all fields',usernameRule:'Username may contain only a-z, 0-9, . _ -',passwordRule:'Password must be at least 6 characters',creating:'Creating...',createdSuccess:'✓ Account created successfully',clearSignatureFirst:'Please draw a signature first',loginRequired:'Please log in',saveFailed:'Save failed',notFoundFile:'File not found',docMoveTitle:'Move Folder',docMove:'Move Folder',exportPrefix:'Export: ',deleteFolderConfirm:'Delete folder "{name}"?\\nDocuments in this folder will remain in "All"',approveDelete:'✓ Approve Delete',reject:'✗ Reject',requestedBy:'Requested by',yourAccount:'Your account',pdfContract:'Rental Contract',download:'⬇ Download',sharePdf:'↗ Share PDF'
+  exportDocument:'Export Document',selectFolderForDocument:'Select destination folder for this document',createFolder:'Create Folder',folderName:'Folder Name',type:'Type',rent:'Rent',sale:'Sale',reno:'Renovation',credit:'Loan',details:'Details / Notes',moreDetails:'Additional details...',contractStart:'Contract Start',contractEnd:'Contract End',contractPdf:'Contract PDF (max 25MB)',openPdf:'Open PDF',share:'Share',history:'📜 Edit History',close:'Close',confirm:'Confirm',loading:'Loading...',noDocuments:'No documents in this folder',pressCreate:'Click "New Document" to get started',loadFailed:'Failed to load',notFound:'Document not found',deleteExpiredTitle:'Direct deletion expired',deleteExpiredMsg:'This document is older than 5 minutes and cannot be deleted directly. A request must be sent to Admin for approval.',deleteRequestSent:'Delete request sent. Waiting for Admin approval.',deleteConfirmTitle:'Delete Document',deleteConfirmMsg:'Delete this document? (This cannot be undone)',requestDeleteTitle:'Request Delete',requestDeleteMsg:'Send a delete request for "{name}" to Admin for approval?',requestSent:'Request sent. Waiting for Admin approval.',noHistory:'No edit history',updatedDocument:'Document updated',copiedFrom:'Copied from: ',copyPrefix:'(Copy) ',movingFailed:'Failed to move folder',deleteFailed:'Delete failed',adminOnly:'Admin only',noUser:'User not found',confirmRole:'Confirm Role Change',roleChange:'Change "{name}" from {oldRole} to {newRole}?',roleChanged:'Role changed successfully',roleChangeFailed:'Role change failed',confirmDeleteUser:'Confirm Delete User',deleteUserMsg:'Delete "{name}" from LIVRENT? This user will no longer be able to sign in until a new user permission is created.',userDeleted:'User deleted successfully',userDeleteFailed:'Failed to delete user',fillAll:'Please complete all fields',usernameRule:'Username may contain only a-z, 0-9, . _ -',passwordRule:'Password must be at least 6 characters',creating:'Creating...',createdSuccess:'✓ Account created successfully',clearSignatureFirst:'Please draw a signature first',loginRequired:'Please log in',saveFailed:'Save failed',notFoundFile:'File not found',docMoveTitle:'Move Folder',docMove:'Move Folder',exportPrefix:'Export: ',deleteFolderConfirm:'Delete folder "{name}"?\\nDocuments in this folder will remain in "All"',approveDelete:'✓ Approve Delete',reject:'✗ Reject',requestedBy:'Requested by',yourAccount:'Your account',pdfContract:'Rental Contract',download:'⬇ Download',sharePdf:'↗ Share PDF'
 });
 Object.assign(LANG.cn,{
   idcard:'身份证号码', taxid:'税号', passport:'护照号码',
   companyreg:'公司注册号', companytax:'公司税号',
-  sysNotif:'通知',sysMenu:'菜单',all:'全部',other:'其他',folder:'文件夹',folderAll:'其他（未分配）',rentalContract:'租赁合同',newDocument:'+ 新建文件',deleteRequests:'📋 删除请求',noDeleteRequests:'没有待处理请求',users:'👥 用户',addNewUser:'➕ 添加新用户',name:'姓名',usernameLabel:'用户名',role:'角色',createAccount:'创建账户',document:'文件',issuer:'发件人',customer:'客户 / 收件人',property:'物业地址',total:'总额',createdBy:'制单人',lastEditedBy:'最后编辑',rename:'重命名',sent:'已发送',moveFolder:'移动文件夹',selectDestination:'选择目标文件夹',move:'移动',cancel:'取消',save:'保存',exportDocument:'导出文件',selectFolderForDocument:'选择此文件的目标文件夹',createFolder:'创建文件夹',folderName:'文件夹名称',type:'类型',rent:'租赁',sale:'出售',reno:'装修',credit:'贷款',details:'详细信息 / 备注',moreDetails:'更多详细信息...',contractStart:'合同开始日期',contractEnd:'合同结束日期',contractPdf:'合同 PDF（最大 5MB）',openPdf:'打开 PDF',share:'分享',history:'📜 编辑历史',close:'关闭',confirm:'确认',loading:'加载中...',noDocuments:'此文件夹中没有文件',pressCreate:'点击“新建文件”开始',loadFailed:'加载失败',notFound:'文件不存在',deleteExpiredTitle:'直接删除已过期',deleteExpiredMsg:'此文件已超过5分钟，无法直接删除。必须提交请求由管理员批准。',deleteRequestSent:'删除请求已发送，等待管理员批准。',deleteConfirmTitle:'删除文件',deleteConfirmMsg:'确定删除此文件吗？（删除后无法恢复）',requestDeleteTitle:'请求删除',requestDeleteMsg:'向管理员提交删除“{name}”的请求？',requestSent:'请求已发送，等待管理员批准。',noHistory:'暂无编辑历史',updatedDocument:'文件已更新',copiedFrom:'复制自：',copyPrefix:'（副本）',movingFailed:'移动文件夹失败',deleteFailed:'删除失败',adminOnly:'仅限管理员',noUser:'未找到用户',confirmRole:'确认更改角色',roleChange:'确定将“{name}”从 {oldRole} 更改为 {newRole} 吗？',roleChanged:'角色更改成功',roleChangeFailed:'角色更改失败',confirmDeleteUser:'确认删除用户',deleteUserMsg:'确定从 LIVRENT 删除“{name}”吗？该用户将无法再次登录，除非重新创建用户权限。',userDeleted:'用户删除成功',userDeleteFailed:'删除用户失败',fillAll:'请填写完整信息',usernameRule:'用户名只能使用 a-z、0-9、.、_、-',passwordRule:'密码至少需要6位',creating:'创建中...',createdSuccess:'✓ 账户创建成功',clearSignatureFirst:'请先绘制签名',loginRequired:'请先登录',saveFailed:'保存失败',notFoundFile:'未找到文件',docMoveTitle:'移动文件夹',docMove:'移动文件夹',exportPrefix:'导出：',deleteFolderConfirm:'确定删除文件夹“{name}”？\\n其中的文件仍会保留在“全部”中',approveDelete:'✓ 批准删除',reject:'✗ 拒绝',requestedBy:'请求人',yourAccount:'您的账户',pdfContract:'租赁合同',download:'⬇ 下载',sharePdf:'↗ 分享 PDF'
+  sysNotif:'通知',sysMenu:'菜单',all:'全部',other:'其他',folder:'文件夹',folderAll:'其他（未分配）',rentalContract:'租赁合同',newDocument:'+ 新建文件',deleteRequests:'📋 删除请求',noDeleteRequests:'没有待处理请求',users:'👥 用户',addNewUser:'➕ 添加新用户',name:'姓名',usernameLabel:'用户名',role:'角色',createAccount:'创建账户',document:'文件',issuer:'发件人',customer:'客户 / 收件人',property:'物业地址',total:'总额',createdBy:'制单人',lastEditedBy:'最后编辑',rename:'重命名',sent:'已发送',moveFolder:'移动文件夹',selectDestination:'选择目标文件夹',move:'移动',cancel:'取消',save:'保存',exportDocument:'导出文件',selectFolderForDocument:'选择此文件的目标文件夹',createFolder:'创建文件夹',folderName:'文件夹名称',type:'类型',rent:'租赁',sale:'出售',reno:'装修',credit:'贷款',details:'详细信息 / 备注',moreDetails:'更多详细信息...',contractStart:'合同开始日期',contractEnd:'合同结束日期',contractPdf:'合同 PDF（最大 25MB）',openPdf:'打开 PDF',share:'分享',history:'📜 编辑历史',close:'关闭',confirm:'确认',loading:'加载中...',noDocuments:'此文件夹中没有文件',pressCreate:'点击“新建文件”开始',loadFailed:'加载失败',notFound:'文件不存在',deleteExpiredTitle:'直接删除已过期',deleteExpiredMsg:'此文件已超过5分钟，无法直接删除。必须提交请求由管理员批准。',deleteRequestSent:'删除请求已发送，等待管理员批准。',deleteConfirmTitle:'删除文件',deleteConfirmMsg:'确定删除此文件吗？（删除后无法恢复）',requestDeleteTitle:'请求删除',requestDeleteMsg:'向管理员提交删除“{name}”的请求？',requestSent:'请求已发送，等待管理员批准。',noHistory:'暂无编辑历史',updatedDocument:'文件已更新',copiedFrom:'复制自：',copyPrefix:'（副本）',movingFailed:'移动文件夹失败',deleteFailed:'删除失败',adminOnly:'仅限管理员',noUser:'未找到用户',confirmRole:'确认更改角色',roleChange:'确定将“{name}”从 {oldRole} 更改为 {newRole} 吗？',roleChanged:'角色更改成功',roleChangeFailed:'角色更改失败',confirmDeleteUser:'确认删除用户',deleteUserMsg:'确定从 LIVRENT 删除“{name}”吗？该用户将无法再次登录，除非重新创建用户权限。',userDeleted:'用户删除成功',userDeleteFailed:'删除用户失败',fillAll:'请填写完整信息',usernameRule:'用户名只能使用 a-z、0-9、.、_、-',passwordRule:'密码至少需要6位',creating:'创建中...',createdSuccess:'✓ 账户创建成功',clearSignatureFirst:'请先绘制签名',loginRequired:'请先登录',saveFailed:'保存失败',notFoundFile:'未找到文件',docMoveTitle:'移动文件夹',docMove:'移动文件夹',exportPrefix:'导出：',deleteFolderConfirm:'确定删除文件夹“{name}”？\\n其中的文件仍会保留在“全部”中',approveDelete:'✓ 批准删除',reject:'✗ 拒绝',requestedBy:'请求人',yourAccount:'您的账户',pdfContract:'租赁合同',download:'⬇ 下载',sharePdf:'↗ 分享 PDF'
 });
 
 function sysT(key, vars={}){ let v=t(key); Object.keys(vars).forEach(k=>v=v.replaceAll('{'+k+'}',vars[k])); return v; }
 function applyExtraLang(){
   const set=(id,key)=>{const e=document.getElementById(id);if(e)e.textContent=sysT(key);};
   const ph=(id,key)=>{const e=document.getElementById(id);if(e)e.placeholder=sysT(key);};
-  set('adminTabLabel','tabAdmin'); set('drawerNotifLabel','sysNotif'); set('libNewDocBtn','newDocument'); set('saveDocBtn','save'); set('libSidebarTrigger','folder');
+  set('adminTabLabel','tabAdmin'); set('drawerNotifLabel','sysNotif'); set('libUploadBtn','uploadPdf'); set('libNewDocBtn','newDocument'); set('saveDocBtn','save'); set('libSidebarTrigger','folder');
   set('dpEditBtn','cardEdit'); set('dpDupBtn','cardDup'); set('dpMoveBtn','moveFolder'); set('dpMoveConfirm','move'); set('docMoveCancel','cancel'); set('docMoveConfirm','moveFolder');
   set('folderModalCancel','cancel'); set('folderModalConfirm','save'); set('historyModalClose','close'); set('confirmTitle','confirm'); set('confirmCancel','cancel'); set('confirmOk','confirm');
   set('exportJpgBtn','close'); set('exportPdfBtn','exportPdf');
@@ -1693,7 +1689,7 @@ function applyExtraLang(){
   const createBtn=document.getElementById('createUserBtn'); if(createBtn)createBtn.textContent=sysT('createAccount');
   const staticPairs=[['dpMoveWrap label','selectDestination'],['docMoveModal > .modal > div:nth-of-type(2)','selectFolderForDocument'],['folderNameInput',''],];
   const fm=document.querySelector('#folderModal .modal'); if(fm){const labs=fm.querySelectorAll(':scope > label'); ['folderName','type','details'].forEach((k,i)=>{if(labs[i])labs[i].textContent=sysT(k);});}
-  const cs=document.querySelector('#folderContractSection'); if(cs){const labs=cs.querySelectorAll('label'); ['contractStart','contractEnd','contractPdf'].forEach((k,i)=>{if(labs[i])labs[i].textContent=sysT(k);}); const h=cs.querySelector('div'); if(h)h.textContent='📄 '+sysT('rentalContract'); const v=document.getElementById('folderContractView'); if(v)v.textContent=sysT('openPdf'); const sh=document.getElementById('folderContractShare'); if(sh)sh.textContent=sysT('share'); const cl=document.getElementById('folderContractClear'); if(cl)cl.textContent=sysT('cardDel');}
+  const cs=document.querySelector('#folderContractSection'); if(cs){const labs=cs.querySelectorAll('label'); ['contractStart','contractEnd','billingDay'].forEach((k,i)=>{if(labs[i])labs[i].textContent=sysT(k);}); const h=cs.querySelector('div'); if(h)h.textContent='📄 '+sysT('rentalContract'); const v=document.getElementById('folderContractView'); if(v)v.textContent=sysT('openPdf'); const sh=document.getElementById('folderContractShare'); if(sh)sh.textContent=sysT('share'); const cl=document.getElementById('folderContractClear'); if(cl)cl.textContent=sysT('cardDel');}
   const h=document.querySelector('#historyModal h3'); if(h)h.textContent=sysT('history');
   const allOpts=document.querySelectorAll('#saveFolderSelect option:first-child,#dpMoveSelect option:first-child,#docMoveSelect option:first-child'); allOpts.forEach(o=>o.textContent='📂 '+sysT('all'));
   // Translate dynamic labels without touching user names.
@@ -1707,9 +1703,9 @@ Object.assign(LANG.en,{docNumberPlaceholder:'Enter manually or auto-generate',pr
 Object.assign(LANG.cn,{docNumberPlaceholder:'手动输入或自动生成',propertyAddressPlaceholder:'例如 123/45 Suk San Village Soi 3',bankPlaceholder:'例如 Kasikornbank',sigNamePlaceholder:'姓名',fileNamePlaceholder:'文件名（留空=自动）',namePlaceholder:'姓名',usernamePlaceholder:'例如 daraporn',passwordPlaceholder:'至少6位',folderNamePlaceholder:'例如 Suk San Village',exportJpg:'JPG',exportPdf:'PDF'});
 
 
-Object.assign(LANG.th,{createFolder:'สร้างโฟลเดอร์',editFolder:'แก้ไขโฟลเดอร์',save:'บันทึก',hasPdf:'มีไฟล์ PDF แนบอยู่',confirmDeletePdf:'ลบไฟล์ PDF?',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 5MB กรุณาเลือกไฟล์ที่เล็กกว่า',uploading:'กำลังอัปโหลด...',folderHasChildren:'ไม่สามารถลบโฟลเดอร์ชั้นที่ 1 ได้ เพราะยังมีโฟลเดอร์ชั้นที่ 2 อยู่',confirmDeleteFolder:'ลบโฟลเดอร์',docsRemainAll:'เอกสารจะยังคงอยู่ใน "ทั้งหมด"',deleteFailed:'ลบไม่สำเร็จ',saveFailed:'บันทึกไม่สำเร็จ',backToFolders:'โฟลเดอร์ทั้งหมด',backToParent:'กลับไปโฟลเดอร์หลัก',openFolder:'เปิดโฟลเดอร์',unfiledFolders:'โฟลเดอร์ที่ยังไม่ได้จัดหมวด',moveToParent:'โฟลเดอร์หลัก',parentDeletedMsg:'โฟลเดอร์หลักถูกลบแล้ว โฟลเดอร์ย่อยถูกย้ายมาไว้ใน "โฟลเดอร์ที่ยังไม่ได้จัดหมวด"',confirmDeleteParentMsg:'ลบโฟลเดอร์หลักนี้ใช่ไหม? โฟลเดอร์ย่อยจะไม่ถูกลบ แต่จะถูกย้ายไป "โฟลเดอร์ที่ยังไม่ได้จัดหมวด" และเอกสารจะยังอยู่เหมือนเดิม',noParent:'— ยังไม่ได้จัดหมวด —'});
-Object.assign(LANG.en,{createFolder:'Create Folder',editFolder:'Edit Folder',save:'Save',hasPdf:'PDF file attached',confirmDeletePdf:'Delete PDF file?',pdfOnly:'Please select a PDF file only',pdfTooLarge:'PDF file is larger than 5MB',uploading:'Uploading...',folderHasChildren:'Cannot delete a level-1 folder while it still has level-2 folders',confirmDeleteFolder:'Delete folder',docsRemainAll:'Documents will remain in "All"',deleteFailed:'Delete failed',saveFailed:'Save failed',backToFolders:'All folders',backToParent:'Back to main folder',openFolder:'Open folder',unfiledFolders:'Uncategorized folders',moveToParent:'Main folder',parentDeletedMsg:'The main folder was deleted. Child folders were moved to "Uncategorized folders".',confirmDeleteParentMsg:'Delete this main folder? Its child folders will not be deleted. They will be moved to "Uncategorized folders" and their documents will remain.',noParent:'— Uncategorized —'});
-Object.assign(LANG.cn,{createFolder:'创建文件夹',editFolder:'编辑文件夹',save:'保存',hasPdf:'已附加 PDF 文件',confirmDeletePdf:'删除 PDF 文件？',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 5MB',uploading:'上传中...',folderHasChildren:'一级文件夹仍有二级文件夹，无法删除',confirmDeleteFolder:'删除文件夹',docsRemainAll:'文档仍会保留在“全部”',deleteFailed:'删除失败',saveFailed:'保存失败',backToFolders:'全部文件夹',backToParent:'返回主文件夹',openFolder:'打开文件夹',unfiledFolders:'未分类文件夹',moveToParent:'主文件夹',parentDeletedMsg:'主文件夹已删除，子文件夹已移至“未分类文件夹”。',confirmDeleteParentMsg:'确定删除此主文件夹吗？子文件夹不会删除，而会移至“未分类文件夹”，其文档保持不变。',noParent:'— 未分类 —'});
+Object.assign(LANG.th,{createFolder:'สร้างโฟลเดอร์',editFolder:'แก้ไขโฟลเดอร์',save:'บันทึก',billingDay:'วันวางบิลค่าเช่าทุกเดือน',documentsFolder:'เอกสาร',uploadPdf:'⬆ อัปโหลด PDF',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',hasPdf:'มีไฟล์ PDF แนบอยู่',confirmDeletePdf:'ลบไฟล์ PDF?',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',uploading:'กำลังอัปโหลด...',folderHasChildren:'ไม่สามารถลบโฟลเดอร์ชั้นที่ 1 ได้ เพราะยังมีโฟลเดอร์ชั้นที่ 2 อยู่',confirmDeleteFolder:'ลบโฟลเดอร์',docsRemainAll:'เอกสารจะยังคงอยู่ใน "ทั้งหมด"',deleteFailed:'ลบไม่สำเร็จ',saveFailed:'บันทึกไม่สำเร็จ',backToFolders:'โฟลเดอร์ทั้งหมด',backToParent:'กลับไปโฟลเดอร์หลัก',openFolder:'เปิดโฟลเดอร์',unfiledFolders:'โฟลเดอร์ที่ยังไม่ได้จัดหมวด',moveToParent:'โฟลเดอร์หลัก',parentDeletedMsg:'โฟลเดอร์หลักถูกลบแล้ว โฟลเดอร์ย่อยถูกย้ายมาไว้ใน "โฟลเดอร์ที่ยังไม่ได้จัดหมวด"',confirmDeleteParentMsg:'ลบโฟลเดอร์หลักนี้ใช่ไหม? โฟลเดอร์ย่อยจะไม่ถูกลบ แต่จะถูกย้ายไป "โฟลเดอร์ที่ยังไม่ได้จัดหมวด" และเอกสารจะยังอยู่เหมือนเดิม',noParent:'— ยังไม่ได้จัดหมวด —'});
+Object.assign(LANG.en,{createFolder:'Create Folder',editFolder:'Edit Folder',save:'Save',billingDay:'Monthly billing day',documentsFolder:'Documents',uploadPdf:'⬆ Upload PDF',pdfOnly:'Please select PDF files only',pdfTooLarge:'PDF file is larger than 25MB',hasPdf:'PDF file attached',confirmDeletePdf:'Delete PDF file?',pdfOnly:'Please select a PDF file only',pdfTooLarge:'PDF file is larger than 25MB',uploading:'Uploading...',folderHasChildren:'Cannot delete a level-1 folder while it still has level-2 folders',confirmDeleteFolder:'Delete folder',docsRemainAll:'Documents will remain in "All"',deleteFailed:'Delete failed',saveFailed:'Save failed',backToFolders:'All folders',backToParent:'Back to main folder',openFolder:'Open folder',unfiledFolders:'Uncategorized folders',moveToParent:'Main folder',parentDeletedMsg:'The main folder was deleted. Child folders were moved to "Uncategorized folders".',confirmDeleteParentMsg:'Delete this main folder? Its child folders will not be deleted. They will be moved to "Uncategorized folders" and their documents will remain.',noParent:'— Uncategorized —'});
+Object.assign(LANG.cn,{createFolder:'创建文件夹',editFolder:'编辑文件夹',save:'保存',billingDay:'每月收款日',documentsFolder:'文件',uploadPdf:'⬆ 上传 PDF',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',hasPdf:'已附加 PDF 文件',confirmDeletePdf:'删除 PDF 文件？',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',uploading:'上传中...',folderHasChildren:'一级文件夹仍有二级文件夹，无法删除',confirmDeleteFolder:'删除文件夹',docsRemainAll:'文档仍会保留在“全部”',deleteFailed:'删除失败',saveFailed:'保存失败',backToFolders:'全部文件夹',backToParent:'返回主文件夹',openFolder:'打开文件夹',unfiledFolders:'未分类文件夹',moveToParent:'主文件夹',parentDeletedMsg:'主文件夹已删除，子文件夹已移至“未分类文件夹”。',confirmDeleteParentMsg:'确定删除此主文件夹吗？子文件夹不会删除，而会移至“未分类文件夹”，其文档保持不变。',noParent:'— 未分类 —'});
 function t(key){ return (LANG[currentLang]||LANG.th)[key] || LANG.th[key] || key; }
 function tDoc(key,lang){ return (LANG[lang]||LANG.th)[key] || LANG.th[key] || key; }
 
@@ -1904,7 +1900,7 @@ function thaiBahtText(numStr){
 }
 
 /* ============================================================
-   AUDIT LOG — V5.9.2
+   AUDIT LOG — V5.9.3
    ============================================================ */
 async function writeAuditLog(action, entityType, entityId, summary, meta={}){
   try{
@@ -2018,6 +2014,7 @@ function showApp(){
   document.getElementById('propertyAddress').value = '';
   syncDocLangButtons();
   fullRender();
+  switchTab('library', false);
   loadFolders().then(()=>refreshRentalNotificationBadge()).catch(()=>{});
 }
 
@@ -2106,8 +2103,10 @@ let _folderModalMode = 'parent'; // parent | child
 let _folderParentId = null;
 let currentParentViewId = null; // null = root; parent id = show its level-2 folders
 
-function isChildFolder(f){ return !!(f && f.parentId); }
-function getChildFolders(parentId){ return foldersCache.filter(f=>f.parentId===parentId); }
+function isChildFolder(f){ return !!(f && f.parentId && !f.isSystemFolder); }
+function isDocumentsFolder(f){ return !!(f && f.isSystemFolder && f.systemFolderType==='documents'); }
+function getChildFolders(parentId){ return foldersCache.filter(f=>f.parentId===parentId && !f.isSystemFolder); }
+function getDocumentsFolderFor(childId){ return foldersCache.find(f=>f.parentId===childId && isDocumentsFolder(f)) || null; }
 function getParentFolder(folderId){
   const f=foldersCache.find(x=>x.id===folderId);
   if(!f) return null;
@@ -2144,7 +2143,7 @@ async function refreshFolderCountsInBackground(){
   try{
     // Count only level-2 folders. This is a lightweight server-side count
     // query and does not download the documents on Firebase 9.23.
-    const countTargets=foldersCache.slice().sort(naturalFolderSort);
+    const countTargets=foldersCache.slice();
     const missing=countTargets.filter(f=>f.docCount===undefined || f.docCount===null);
     if(missing.length){
       const results=await Promise.all(missing.map(async f=>{
@@ -2187,6 +2186,7 @@ async function loadFolders(){
     0
   );
 
+  await ensureDocumentsSystemFolders();
   renderFolderList();
   populateFolderSelect();
   syncMobileFolderSelect();
@@ -2195,22 +2195,6 @@ async function loadFolders(){
   // Refresh counters in the background. The Library UI and document list
   // are already usable while this runs.
   refreshFolderCountsInBackground();
-}
-
-let _folderSortMode = localStorage.getItem('livrent_folder_sort') || 'name';
-let _docSortMode = localStorage.getItem('livrent_doc_sort') || 'createdAt';
-function folderCreatedMs(f){ return f?.createdAt?.toMillis ? f.createdAt.toMillis() : Number(f?.createdAt||0); }
-function documentCreatedMs(f){ return f?.createdAt?.toMillis ? f.createdAt.toMillis() : Number(f?.createdAt||0); }
-function naturalFolderSort(a,b){
-  const collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
-  return collator.compare(String(a?.name||''),String(b?.name||''));
-}
-function folderSortComparator(a,b){
-  if(_folderSortMode==='createdAt'){
-    const d=folderCreatedMs(a)-folderCreatedMs(b);
-    if(d!==0)return d;
-  }
-  return naturalFolderSort(a,b);
 }
 
 function renderFolderList(){
@@ -2224,7 +2208,7 @@ function renderFolderList(){
   let html='';
 
   if(parentView){
-    const children=getChildFolders(parentView.id).filter(f=>!f.orphaned).slice().sort(folderSortComparator);
+    const children=getChildFolders(parentView.id).filter(f=>!f.orphaned).slice();
     const backName = (t('backToFolders') || 'โฟลเดอร์ทั้งหมด');
     html+=`<div class="folder-item" data-folder-back="1" style="justify-content:flex-start;color:var(--maroon);font-weight:700">← ${escHtml(backName)}</div>`;
     html+=`<div class="folder-item folder-level-1 active" style="justify-content:flex-start;cursor:default">
@@ -2245,16 +2229,23 @@ function renderFolderList(){
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${del}
         <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
       </div>`;
+      const docsFolder=getDocumentsFolderFor(child.id);
+      if(docsFolder){
+        const activeDocs=currentFolderId===docsFolder.id;
+        html+=`<div class="folder-item folder-level-3${activeDocs?' active':''}" data-fid="${docsFolder.id}" data-system-folder="documents" style="justify-content:flex-start;padding-left:52px;font-size:11px;${activeDocs?'font-weight:700;':''}">
+          <span class="folder-icon">📁</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(t('documentsFolder')||'เอกสาร')}</span>
+        </div>`;
+      }
     });
   }else{
     html+=`<div class="folder-item${currentFolderId==='__all__'?' active':''}" data-fid="__all__" style="justify-content:flex-start">
       <span style="flex:1">${t('other')}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:4px">(${otherCount})</span><span class="folder-type-tag ft-all">OTHER</span>
     </div>`;
-    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).sort(folderSortComparator);
+    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned);
     parents.forEach(parent=>{
-      const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice().sort(folderSortComparator);
+      const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice();
       const parentCount=children.length + (folderDocCounts[parent.id]||0);
-      const parentEdit=isAdmin?`<button class="folder-tool" data-folder-edit="${parent.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
+      const parentEdit=(isAdmin || currentUser?.role==='staff')?`<button class="folder-tool" data-folder-edit="${parent.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
       const parentDelete=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${parent.id}" data-parent="1" data-fname="${escAttr(parent.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
       const addChild=canCreateFolder?`<button class="folder-tool folder-add-child" data-parent-id="${parent.id}" title="${t('createFolder')||'สร้างโฟลเดอร์'}">＋</button>`:'';
       html+=`<div class="folder-item folder-level-1" data-parent-open="${parent.id}" style="justify-content:flex-start">
@@ -2262,7 +2253,7 @@ function renderFolderList(){
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${parentCount})</span>${addChild}${parentEdit}${parentDelete}
       </div>`;
     });
-    const orphans=foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned)).sort(folderSortComparator);
+    const orphans=foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned));
     if(orphans.length){
       html+=`<div style="padding:12px 12px 5px;color:var(--ink-soft);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${t('unfiledFolders')||'โฟลเดอร์ที่ยังไม่ได้จัดหมวด'}</div>`;
       orphans.forEach(child=>{
@@ -2287,6 +2278,17 @@ function renderFolderList(){
       const backTrigger=document.getElementById('libSidebarTrigger'); if(backTrigger) backTrigger.textContent='📂 '+t('other');
     }else{
       const child=foldersCache.find(x=>x.id===currentFolderId);
+      if(isDocumentsFolder(child)){
+        const house=foldersCache.find(x=>x.id===child.parentId);
+        const mainId=house?.parentId||null;
+        currentParentViewId=mainId; currentFolderId=house?.id||'__all__';
+        renderFolderList();
+        const title=house?.name||t('other');
+        document.getElementById('libFolderTitle').textContent=title;
+        const bt=document.getElementById('libSidebarTrigger'); if(bt)bt.textContent='📂 '+title;
+        loadDocList();
+        return;
+      }
       const parentId=child?.parentId||currentParentViewId;
       currentParentViewId=parentId||null;
       currentFolderId=parentId?'__parent_view__':'__all__';
@@ -2314,7 +2316,10 @@ function renderFolderList(){
       const f=foldersCache.find(x=>x.id===fid);
       // When opening a child, keep its parent view active so the sidebar shows
       // the siblings and provides a direct "back to parent" action.
-      if(f?.parentId){ currentParentViewId=f.parentId; currentFolderId=f.id; }
+      if(isDocumentsFolder(f)){
+        const house=foldersCache.find(x=>x.id===f.parentId);
+        currentParentViewId=house?.parentId||null; currentFolderId=f.id;
+      } else if(f?.parentId){ currentParentViewId=f.parentId; currentFolderId=f.id; }
       else { currentParentViewId=null; currentFolderId=fid; }
     }
     renderFolderList(); loadDocList();
@@ -2325,16 +2330,13 @@ function renderFolderList(){
   }));
   list.querySelectorAll('[data-folder-edit]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openFolderEdit(btn.dataset.folderEdit);}));
   list.querySelectorAll('.folder-add-child').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openNewChildFolder(btn.dataset.parentId);}));
+  updateLibraryActionButtons();
 }
 
 function populateFolderSelect(){
   const selects=[document.getElementById('saveFolderSelect'),document.getElementById('docMoveSelect'),document.getElementById('dpMoveSelect')].filter(Boolean);
-  const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).slice().sort(naturalFolderSort);
-  const children=foldersCache.filter(f=>!!f.parentId || f.orphaned).slice().sort((a,b)=>{
-    const pa=a.parentId?foldersCache.find(x=>x.id===a.parentId):null;
-    const pb=b.parentId?foldersCache.find(x=>x.id===b.parentId):null;
-    return naturalFolderSort(pa||a,pb||b)||naturalFolderSort(a,b);
-  });
+  const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).slice();
+  const children=foldersCache.filter(f=>(!!f.parentId && !f.isSystemFolder) || f.orphaned).slice();
   selects.forEach(sel=>{
     const current=sel.value;
     let html=`<option value="">📂 ${t('folderAll')}</option>`;
@@ -2356,7 +2358,7 @@ function configureFolderModal(mode,parentId=null){
   const parentWrap=document.getElementById('folderParentWrap');
   const parentInput=document.getElementById('folderParentInput');
   if(parentInput){
-    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).sort(naturalFolderSort);
+    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned);
     parentInput.innerHTML=`<option value="">${t('noParent')||'— ยังไม่ได้จัดหมวด —'}</option>`+parents.map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
     parentInput.value=parentId||'';
   }
@@ -2369,6 +2371,30 @@ function configureFolderModal(mode,parentId=null){
   const child=mode==='child';
   [typeLabel,typeInput,descLabel,desc,contract].forEach(el=>{if(el)el.style.display=child?'':'none';});
   updateFolderContractVisibility();
+}
+async function createDocumentsSystemFolder(childId){
+  if(!childId) return null;
+  const existing=getDocumentsFolderFor(childId);
+  if(existing) return existing.id;
+  const ref=await db.collection('folders').add({
+    nameKey:'documents', name:'เอกสาร', parentId:childId, level:3,
+    isSystemFolder:true, systemFolderType:'documents',
+    createdBy:currentUser?.uid||null, createdByName:currentUser?.displayName||'—',
+    createdAt:firebase.firestore.FieldValue.serverTimestamp(), docCount:0
+  });
+  await writeAuditLog('folder_system_create','folder',ref.id,'สร้างโฟลเดอร์ระบบ "เอกสาร"',{parentId:childId,systemFolderType:'documents'});
+  return ref.id;
+}
+async function ensureDocumentsSystemFolders(){
+  const children=foldersCache.filter(f=>f.parentId && !f.isSystemFolder && Number(f.level||0)===2 && !f.orphaned);
+  for(const child of children){
+    if(!getDocumentsFolderFor(child.id)) {
+      try{
+        const id=await createDocumentsSystemFolder(child.id);
+        foldersCache.push({id,nameKey:'documents',name:'เอกสาร',parentId:child.id,level:3,isSystemFolder:true,systemFolderType:'documents',docCount:0,createdAt:null});
+      }catch(e){ console.warn('Ensure documents folder:',e); }
+    }
+  }
 }
 async function deleteStorageContract(path){ if(!path)return; try{await storage.ref(path).delete();}catch(e){console.warn('Storage delete:',e);} }
 function getContractUrl(f){ return f?.contractPdfUrl||f?.contractPdfData||''; }
@@ -2401,8 +2427,9 @@ function openNewChildFolder(parentId){
 }
 function openFolderEdit(fid){
   const f=foldersCache.find(x=>x.id===fid); if(!f)return;
-  const allowed = currentUser?.role==='admin' || (currentUser?.role==='staff' && (f.parentId || Number(f.level||0)===2));
-  if(!allowed){ alert('Staff แก้ไขได้เฉพาะโฟลเดอร์ย่อย'); return; }
+  const allowed = currentUser?.role==='admin' || currentUser?.role==='staff';
+  if(isDocumentsFolder(f)){ alert(t('documentsFolder')||'เอกสาร'); return; }
+  if(!allowed){ alert('ไม่มีสิทธิ์แก้ไขโฟลเดอร์'); return; }
   _editingFolderId=fid;
   configureFolderModal(f.parentId?'child':'parent',f.parentId||null);
   document.getElementById('folderModalTitle').textContent=(t('editFolder')||'แก้ไขโฟลเดอร์')+(f.parentId?` — ${foldersCache.find(x=>x.id===f.parentId)?.name||''}`:'');
@@ -2447,8 +2474,11 @@ function fileIcon(name,type){
   return '📎';
 }
 async function getFolderFiles(folderId){
-  const snap=await db.collection('folderFiles').where('folderId','==',folderId).get();
-  return snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+  const f=foldersCache.find(x=>x.id===folderId);
+  const house=f && isDocumentsFolder(f) ? foldersCache.find(x=>x.id===f.parentId) : null;
+  const source=house || f;
+  const files=Array.isArray(source?.contractFiles)?source.contractFiles:[];
+  return files.map(x=>({...x})).sort((a,b)=>{
     const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
     const tb=b.createdAt?.toMillis?b.createdAt.toMillis():Number(b.createdAt||0);
     return tb-ta;
@@ -2457,7 +2487,8 @@ async function getFolderFiles(folderId){
 async function loadFolderFiles(){
   const el=document.getElementById('folderFilesSection');
   if(!el) return;
-  const folder=currentLibraryFolder();
+  let folder=currentLibraryFolder();
+  if(folder && isDocumentsFolder(folder)){ folder=foldersCache.find(x=>x.id===folder.parentId)||folder; }
   const locationId=currentLibraryLocationId();
   if(currentFolderId==='__parent_view__' && !locationId){ el.innerHTML=''; return; }
   try{
@@ -2480,8 +2511,12 @@ async function loadFolderFiles(){
       b.disabled=true;
       try{
         if(f.storagePath) await storage.ref(f.storagePath).delete().catch(()=>{});
-        await db.collection('folderFiles').doc(f.id).delete();
-        await writeAuditLog('file_delete','folderFile',f.id,`ลบไฟล์ "${f.name||'ไฟล์'}"`,{folderId:f.folderId||null});
+        const house=foldersCache.find(x=>x.id===f.houseFolderId);
+        if(house){
+          await db.collection('folders').doc(house.id).update({contractFiles:firebase.firestore.FieldValue.arrayRemove(f)});
+          if(Array.isArray(house.contractFiles)) house.contractFiles=house.contractFiles.filter(x=>x.id!==f.id);
+        }
+        await writeAuditLog('file_delete','folderFile',f.id,`ลบไฟล์ "${f.name||'ไฟล์'}"`,{folderId:f.folderId||null,houseFolderId:f.houseFolderId||null});
         await loadFolderFiles();
         await refreshFolderInfoIfOpen();
       }catch(e){alert('ลบไฟล์ไม่สำเร็จ: '+e.message);b.disabled=false;}
@@ -2490,8 +2525,9 @@ async function loadFolderFiles(){
 }
 async function uploadFolderFiles(fileList){
   const folder=currentLibraryFolder();
-  const locationId=currentLibraryLocationId();
-  if(currentFolderId==='__parent_view__' && !locationId){alert('ไม่พบตำแหน่งปัจจุบัน');return;}
+  if(!folder || !isDocumentsFolder(folder)){ alert('กรุณาเข้าโฟลเดอร์ "'+(t('documentsFolder')||'เอกสาร')+'" ก่อนอัปโหลด'); return; }
+  const houseFolder=foldersCache.find(f=>f.id===folder.parentId);
+  if(!houseFolder){ alert('ไม่พบโฟลเดอร์บ้านของเอกสารนี้'); return; }
   if(!currentUser || !['admin','staff'].includes(String(currentUser.role||'').toLowerCase())){alert('ไม่มีสิทธิ์อัปโหลดไฟล์');return;}
   const files=Array.from(fileList||[]);
   if(!files.length)return;
@@ -2500,26 +2536,30 @@ async function uploadFolderFiles(fileList){
   let done=0;
   try{
     for(const file of files){
-      if(file.size>10*1024*1024) throw new Error(`ไฟล์ "${file.name}" ใหญ่เกิน 10 MB`);
+      const isPdf=(file.type==='application/pdf') || /\.pdf$/i.test(file.name||'');
+      if(!isPdf) throw new Error(`ไฟล์ "${file.name}" ไม่ใช่ PDF`);
+      if(file.size>25*1024*1024) throw new Error(`ไฟล์ "${file.name}" ใหญ่เกิน 25 MB`);
       status.textContent=`กำลังอัปโหลด ${file.name} (${done+1}/${files.length}) ...`;
-      const safe=(file.name||'file').replace(/[^a-zA-Z0-9._-]+/g,'_');
-      const path=`folderFiles/${locationId||'unassigned'}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
-      const snap=await storage.ref(path).put(file,{contentType:file.type||'application/octet-stream'});
+      const safe=(file.name||'file.pdf').replace(/[^a-zA-Z0-9._-]+/g,'_');
+      // Reuse the existing contracts/ Storage namespace so no new Firebase
+      // Storage rule is required for this V5.9.3 upload flow.
+      const path=`contracts/${houseFolder.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
+      const snap=await storage.ref(path).put(file,{contentType:'application/pdf'});
       const url=await snap.ref.getDownloadURL();
-      await db.collection('folderFiles').add({folderId:locationId,name:file.name||safe,size:file.size,contentType:file.type||'application/octet-stream',url,storagePath:path,uploadedBy:currentUser.uid,uploadedByName:currentUser.displayName||currentUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      const fileMeta={id:'file_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),name:file.name||safe,size:file.size,contentType:'application/pdf',url,storagePath:path,fileKind:'contract',folderId:folder.id,houseFolderId:houseFolder.id,uploadedBy:currentUser.uid,uploadedByName:currentUser.displayName||currentUser.email,createdAt:new Date().toISOString()};
+      await db.collection('folders').doc(houseFolder.id).update({contractFiles:firebase.firestore.FieldValue.arrayUnion(fileMeta)});
+      const cachedHouse=foldersCache.find(x=>x.id===houseFolder.id);
+      if(cachedHouse){ cachedHouse.contractFiles=Array.isArray(cachedHouse.contractFiles)?cachedHouse.contractFiles.concat([fileMeta]):[fileMeta]; }
       done++;
-      await writeAuditLog('file_upload','folderFile',null,`อัปโหลดไฟล์ "${file.name||safe}"`,{folderId:locationId,size:file.size,contentType:file.type||'application/octet-stream'});
+      await writeAuditLog('file_upload','folderFile',null,`อัปโหลด PDF "${file.name||safe}"`,{folderId:folder.id,houseFolderId:houseFolder.id,size:file.size,contentType:'application/pdf'});
     }
     status.textContent=`✓ อัปโหลดสำเร็จ ${done} ไฟล์`;
     await loadFolderFiles();
     await refreshFolderInfoIfOpen();
     setTimeout(()=>{status.style.display='none';},2200);
   }catch(e){
-    const permission=/permission|unauthorized|insufficient/i.test(String(e?.message||''));
     status.textContent=`อัปโหลดสำเร็จ ${done}/${files.length} ไฟล์ — ${e.message}`;
-    alert(permission
-      ? 'อัปโหลดไม่ได้ เพราะ Firebase Storage Rules ยังไม่อนุญาตผู้ใช้บัญชีนี้ให้เขียนไฟล์ในโฟลเดอร์ folderFiles (ต้องแก้ Rules ที่ Firebase Console)'
-      : 'อัปโหลดไม่สำเร็จ: '+e.message);
+    alert('อัปโหลดไม่สำเร็จ: '+e.message);
     await loadFolderFiles();
   }
 }
@@ -2539,8 +2579,15 @@ function nextBillingDate(folder){
 function isoLocal(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';}
 function folderTypeLabel(type){return FOLDER_TYPES[type]?.label||type||'—';}
 function openFolderInfo(){
-  const f=currentLibraryFolder();
+  let f=currentLibraryFolder();
   if(!f){alert('กรุณาเลือกโฟลเดอร์ก่อน');return;}
+  // When the user is inside the protected Documents folder, show the
+  // contract/property information of its parent house instead of system-folder
+  // metadata. Files still remain attached to the Documents folder.
+  if(isDocumentsFolder(f)){
+    const house=foldersCache.find(x=>x.id===f.parentId);
+    if(house) f=house;
+  }
   const parent=f.parentId?foldersCache.find(x=>x.id===f.parentId):null;
   const endDays=daysFromToday(f.contractEnd);
   const bill=nextBillingDate(f); const billIso=isoLocal(bill); const billDays=billIso?daysFromToday(billIso):null;
@@ -2574,16 +2621,20 @@ async function refreshFolderInfoIfOpen(){
 document.getElementById('libFolderInfoBtn')?.addEventListener('click',openFolderInfo);
 document.getElementById('libFolderTitle')?.addEventListener('click',openFolderInfo);
 document.getElementById('folderInfoClose')?.addEventListener('click',()=>document.getElementById('folderInfoModal').classList.add('hidden'));
+function updateLibraryActionButtons(){
+  const btn=document.getElementById('libUploadBtn');
+  if(!btn) return;
+  const folder=currentLibraryFolder();
+  const show=!!(folder && isDocumentsFolder(folder) && ['admin','staff'].includes(String(currentUser?.role||'').toLowerCase()));
+  btn.style.display=show?'':'none';
+  btn.textContent=t('uploadPdf')||'⬆ อัปโหลด PDF';
+}
 document.getElementById('libUploadBtn')?.addEventListener('click',()=>{
-  if(currentFolderId==='__parent_view__' && !currentParentViewId){alert('ไม่พบตำแหน่งปัจจุบัน');return;}
+  const folder=currentLibraryFolder();
+  if(!folder || !isDocumentsFolder(folder)){alert('อัปโหลดได้เฉพาะในโฟลเดอร์ '+(t('documentsFolder')||'เอกสาร'));return;}
   document.getElementById('folderFileInput')?.click();
 });
-document.getElementById('folderFileInput')?.addEventListener('change',e=>{uploadFolderFiles(e.target.files);e.target.value='';});document.getElementById('folderSortSelect')?.addEventListener('change',e=>{
-  _folderSortMode=e.target.value||'name'; localStorage.setItem('livrent_folder_sort',_folderSortMode); renderFolderList();
-});
-document.getElementById('docSortSelect')?.addEventListener('change',e=>{
-  _docSortMode=e.target.value||'createdAt'; localStorage.setItem('livrent_doc_sort',_docSortMode); loadDocList();
-});
+document.getElementById('folderFileInput')?.addEventListener('change',e=>{uploadFolderFiles(e.target.files);e.target.value='';});
 
 
 document.getElementById('addFolderBtn').addEventListener('click',openNewParentFolder);
@@ -2623,13 +2674,19 @@ document.getElementById('folderModalConfirm').addEventListener('click',async()=>
         if(_editingFolderId){
           await db.collection('folders').doc(_editingFolderId).update(payload);
         }
-        else await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        else {
+          const childRef = await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          await createDocumentsSystemFolder(childRef.id);
+        }
       }else{
         if(_editingFolderId){
           if(existing?.contractPdfPath)await deleteStorageContract(existing.contractPdfPath);
           Object.assign(payload,{contractStart:firebase.firestore.FieldValue.delete(),contractEnd:firebase.firestore.FieldValue.delete(),contractPdfUrl:firebase.firestore.FieldValue.delete(),contractPdfPath:firebase.firestore.FieldValue.delete(),contractPdfName:firebase.firestore.FieldValue.delete(),contractPdfData:firebase.firestore.FieldValue.delete()});
           await db.collection('folders').doc(_editingFolderId).update(payload);
-        }else await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        }else {
+          const childRef = await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          await createDocumentsSystemFolder(childRef.id);
+        }
       }
     }
     const newParentId = isChild ? (document.getElementById('folderParentInput')?.value || existing?.parentId || _folderParentId || null) : null;
@@ -2758,15 +2815,11 @@ async function queryLibraryDocuments(reset=true){
 
   if(isAll){
     // "อื่นๆ" = documents that have no folder at all.
-    let q=db.collection('documents').where('folderId','==',null); if(_docSortMode!=='name') q=q.limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',null).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>_docSortMode==='name'
-      ? new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''))
-      : documentCreatedMs(b)-documentCreatedMs(a));
-    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
-    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
+    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2776,36 +2829,22 @@ async function queryLibraryDocuments(reset=true){
   // folder. Child folders are navigated into separately; their documents are
   // not mixed into the main-folder document list.
   if(isParentView){
-    let q=db.collection('documents').where('folderId','==',currentParentViewId); if(_docSortMode!=='name') q=q.limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',currentParentViewId).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>{
-      if(_docSortMode==='name'){
-        const c=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''));
-        if(c!==0)return c;
-      }
-      return documentCreatedMs(b)-documentCreatedMs(a);
-    });
-    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
+    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
   }
 
   if(selected?.parentId){
-    let q=db.collection('documents').where('folderId','==',selected.id); if(_docSortMode!=='name') q=q.limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',selected.id).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>{
-      if(_docSortMode==='name'){
-        const c=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''));
-        if(c!==0)return c;
-      }
-      return documentCreatedMs(b)-documentCreatedMs(a);
-    });
-    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
+    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2813,18 +2852,11 @@ async function queryLibraryDocuments(reset=true){
 
   // Legacy/orphaned level-1 folders can still be opened directly.
   if(selected){
-    let q=db.collection('documents').where('folderId','==',selected.id); if(_docSortMode!=='name') q=q.limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',selected.id).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>{
-      if(_docSortMode==='name'){
-        const c=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''));
-        if(c!==0)return c;
-      }
-      return documentCreatedMs(b)-documentCreatedMs(a);
-    });
-    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
+    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -3264,7 +3296,6 @@ function listenDeleteRequests(){
     const dot = document.getElementById('notifDot');
     const badge = document.getElementById('reqBadge');
     const badge2 = document.getElementById('reqBadge2');
-    dot.classList.toggle('visible', count>0);
     [badge,badge2].forEach(b=>{ b.textContent=count; b.style.display=count>0?'':'none'; });
     // render list
     const listEl = document.getElementById('deleteRequestsList');
@@ -3795,7 +3826,7 @@ function switchTab(tab, pushState=true){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(tab+'View').classList.add('active');
   if(tab==='library') loadDocList();
-  if(tab==='admin' && currentUser?.role==='admin') loadUsers();
+  if(tab==='admin' && currentUser?.role==='admin' && currentUser?.isOwner) loadUsers();
   if(tab==='editor') setTimeout(scalePreview,100);
   if(tab==='stats') loadStats();
   if(pushState) try{ history.pushState({tab},'',(location.pathname||'/')+'#'+tab); }catch(e){}
@@ -3869,7 +3900,7 @@ async function markRentalNotificationRead(n){
   localStorage.setItem('livrent_rental_notif_read_'+(currentUser?.uid||''),JSON.stringify(reads));
   if(currentUser) currentUser.notificationReads=Object.assign({},currentUser.notificationReads||{}, {[key]:Date.now()});
   try{
-    await db.collection('users').doc(currentUser.uid).set({rentalNotificationReads:{[key]:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});
+    await db.collection('users').doc(currentUser.uid).set({notificationReads:{[key]:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});
   }catch(e){}
   refreshRentalNotificationBadge();
 }
@@ -3896,7 +3927,7 @@ function refreshRentalNotificationBadge(){
   if(drawerDot) drawerDot.style.display=unread.length?'inline-block':'none';
   return items;
 }
-function openRentalNotifications(){
+async function openRentalNotifications(){
   const list=document.getElementById('rentalNotifList'), items=refreshRentalNotificationBadge(), reads=rentalNotificationReadMap();
   if(!items.length){list.innerHTML='<div class="lib-empty" style="padding:30px 15px">🎉 ตอนนี้ยังไม่มีรายการที่ต้องแจ้งเตือน</div>';}
   else list.innerHTML=items.map(n=>{
@@ -3907,6 +3938,13 @@ function openRentalNotifications(){
       <button class="contract-btn" style="margin-top:7px" data-notif-folder="${escAttr(n.folderId)}" data-notif-key="${escAttr(rentalNotificationKey(n))}">เปิดโฟลเดอร์</button>
     </div>`;
   }).join('');
+  // Opening the notification center counts as viewing the current alerts.
+  // Persist the read state to the signed-in user's profile so the red dot also
+  // stays cleared when the same account is used on another device.
+  if(items.length && currentUser?.uid){
+    for(const n of items){ try{ await markRentalNotificationRead(n); }catch(e){} }
+  }
+  refreshRentalNotificationBadge();
   list.querySelectorAll('[data-notif-folder]').forEach(b=>b.addEventListener('click',async()=>{
     const n=items.find(x=>rentalNotificationKey(x)===b.dataset.notifKey);
     if(n) await markRentalNotificationRead(n);
@@ -3937,8 +3975,6 @@ applyLang = function(){
 
 // Apply language on load
 applyLang();
-if(document.getElementById('folderSortSelect')) document.getElementById('folderSortSelect').value=_folderSortMode;
-if(document.getElementById('docSortSelect')) document.getElementById('docSortSelect').value=_docSortMode;
 initLangDropdowns();
 </script>
 
@@ -4145,7 +4181,7 @@ document.getElementById('meTogglePreview').addEventListener('click',mobileEditor
 function syncMobileFolderSelect(){
   const sel=document.getElementById('mobileFolderSelect'); if(!sel)return;
   let html=`<option value="__all__">📂 ${t('other')}</option>`;
-  foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).sort(naturalFolderSort).forEach(p=>{
+  foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).forEach(p=>{
     html+=`<option value="${p.id}">📁 ${escHtml(p.name)}</option>`;
   });
   sel.innerHTML=html;
@@ -4295,6 +4331,8 @@ async function moveFolderDocumentsToOther(folderId){
   const delBtn=e.target.closest('.folder-delete-btn[data-fid]'); if(!delBtn)return;
   if(currentUser?.role!=='admin')return;
   const fid=delBtn.dataset.fid, fname=delBtn.dataset.fname||fid;
+  const targetFolder=foldersCache.find(x=>x.id===fid);
+  if(isDocumentsFolder(targetFolder)){ return; }
   const isParent=delBtn.dataset.parent==='1';
   const children=getChildFolders(fid);
   let message=t('confirmDeleteFolder')||'ลบโฟลเดอร์';
@@ -4327,6 +4365,17 @@ async function moveFolderDocumentsToOther(folderId){
       }
     }
     if(f?.contractPdfPath)await deleteStorageContract(f.contractPdfPath);
+    if(!isParent){
+      const sys=getDocumentsFolderFor(fid);
+      if(sys){
+        try{
+          const files=Array.isArray(f?.contractFiles)?f.contractFiles:[];
+          for(const x of files){ if(x.storagePath) await storage.ref(x.storagePath).delete().catch(()=>{}); }
+          await db.collection('folders').doc(fid).update({contractFiles:firebase.firestore.FieldValue.delete()});
+          await db.collection('folders').doc(sys.id).delete();
+        }catch(e){ console.warn('Cleanup system documents folder:',e); }
+      }
+    }
     await db.collection('folders').doc(fid).delete();
     await writeAuditLog('folder_delete','folder',fid,`ลบโฟลเดอร์ "${fname}"`,{parent:isParent,children:children.length});
     if(currentFolderId===fid || currentParentViewId===fid){currentFolderId='__all__';currentParentViewId=null;}
@@ -4370,11 +4419,11 @@ async function moveFolderDocumentsToOther(folderId){
 <!-- ===== BOTTOM NAVIGATION (mobile) ===== -->
 <div class="bottom-nav" id="bottomNav">
   <div class="bottom-nav-inner">
-    <button class="bottom-nav-btn active" data-bn-tab="editor">
-      <span class="bn-icon">✏️</span><span data-i18n="bnEditor">สร้าง</span>
-    </button>
-    <button class="bottom-nav-btn" data-bn-tab="library">
+    <button class="bottom-nav-btn active" data-bn-tab="library">
       <span class="bn-icon">📁</span><span data-i18n="bnLibrary">คลัง</span>
+    </button>
+    <button class="bottom-nav-btn" data-bn-tab="editor">
+      <span class="bn-icon">✏️</span><span data-i18n="bnEditor">สร้าง</span>
     </button>
     <button class="bottom-nav-btn" data-bn-tab="stats">
       <span class="bn-icon">📊</span><span data-i18n="bnStats">สถิติ</span>
