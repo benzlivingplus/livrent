@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.9.1">
+<meta name="livrent-version" content="5.9.2">
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -568,6 +568,14 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 /* ===== V5.9.1 folder info / uploads ===== */
 .lib-top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .folder-title-clickable{cursor:pointer}
+.lib-sort-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.lib-sort-row label{font-size:11px;color:var(--ink-soft)}
+.lib-sort-row select{font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit}
+.audit-list{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow:auto}
+.audit-item{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;font-size:11.5px;display:flex;gap:10px;align-items:flex-start}
+.audit-item .audit-main{flex:1;min-width:0}.audit-item .audit-who{font-weight:700;color:var(--maroon)}
+.audit-item .audit-time{font-size:10px;color:var(--ink-soft);white-space:nowrap}
+
 .folder-title-clickable:hover{text-decoration:underline;text-underline-offset:3px}
 .folder-info-btn{border:1px solid var(--line);background:#fff;color:var(--maroon);border-radius:50%;width:28px;height:28px;cursor:pointer;font-weight:700}
 .folder-info-btn:hover{background:var(--line-soft)}
@@ -1229,6 +1237,12 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
           <button class="new-doc-btn" id="libNewDocBtn">+ สร้างเอกสารใหม่</button>
           <input id="folderFileInput" type="file" multiple style="display:none" accept="*/*">
         </div>
+        <div class="lib-sort-row" style="width:100%;justify-content:flex-end">
+          <label for="folderSortSelect">โฟลเดอร์:</label>
+          <select id="folderSortSelect"><option value="name">เรียงตามชื่อ</option><option value="createdAt">เรียงตามวันที่สร้าง</option></select>
+          <label for="docSortSelect">เอกสาร:</label>
+          <select id="docSortSelect"><option value="createdAt">เรียงตามวันที่สร้าง</option><option value="name">เรียงตามชื่อ</option></select>
+        </div>
       </div>
       <div id="folderUploadStatus" style="display:none;font-size:12px;color:var(--ink-soft);margin:-4px 0 10px;padding:8px 10px;background:var(--line-soft);border-radius:6px"></div>
       <div id="folderFilesSection"></div>
@@ -1243,7 +1257,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
         <h3>📋 คำขอลบเอกสาร <span class="tab-badge" id="reqBadge2" style="display:none">0</span></h3>
         <div id="deleteRequestsList"><div class="lib-empty" style="padding:30px 0">ไม่มีคำขอรอดำเนินการ</div></div>
       </div>
-      <div class="admin-section">
+      <div class="admin-section" id="adminUserManagement">
         <h3>👥 ผู้ใช้งาน</h3>
         <div id="userList"></div>
         <div class="create-user-form">
@@ -1370,14 +1384,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
       <label>แจ้งเตือนล่วงหน้า (วัน)</label>
       <input type="number" id="folderBillingReminder" min="0" max="30" value="3" style="margin-bottom:6px">
       <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">กระดิ่งจะแจ้งก่อนวันวางบิลตามจำนวนวันที่ตั้งไว้ และเตือนวันหมดสัญญา</div>
-      <label>ไฟล์ PDF สัญญา (ไม่เกิน 5MB)</label>
-      <input type="file" id="folderContractPdf" accept="application/pdf" style="font-size:12px;margin-bottom:4px">
-      <div id="folderContractStatus" style="font-size:11px;color:var(--ink-soft);margin-top:2px"></div>
-      <div id="folderContractActions" style="display:none;margin-top:6px;display:flex;gap:6px">
-        <button id="folderContractView" class="btn btn-secondary" style="flex:1;padding:6px;font-size:12px">เปิดดู PDF</button>
-        <button id="folderContractShare" class="btn btn-secondary" style="flex:1;padding:6px;font-size:12px">แชร์</button>
-        <button id="folderContractClear" style="background:none;border:1px solid #ecc9c5;color:var(--danger);padding:6px 10px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-family:inherit">ลบ</button>
-      </div>
+      <div style="font-size:10.5px;color:var(--ink-soft);margin-top:3px">เอกสารสัญญาและไฟล์อื่น ๆ สามารถอัปโหลดได้จากหน้าภายในโฟลเดอร์</div>
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" id="folderModalCancel">ยกเลิก</button>
@@ -1897,6 +1904,36 @@ function thaiBahtText(numStr){
 }
 
 /* ============================================================
+   AUDIT LOG — V5.9.2
+   ============================================================ */
+async function writeAuditLog(action, entityType, entityId, summary, meta={}){
+  try{
+    if(!currentUser?.uid) return;
+    await db.collection('auditLogs').add({
+      action:String(action||'unknown'), entityType:String(entityType||''), entityId:entityId||null,
+      summary:String(summary||''), meta:meta||{}, userId:currentUser.uid,
+      userName:currentUser.displayName||currentUser.email||'—', userRole:currentUser.role||'staff',
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if(currentUser.role==='admin' && document.getElementById('auditLogList')) loadAuditLogs();
+  }catch(e){ console.warn('Audit log unavailable:',e); }
+}
+async function loadAuditLogs(){
+  const el=document.getElementById('auditLogList');
+  if(!el || currentUser?.role!=='admin') return;
+  try{
+    const snap=await db.collection('auditLogs').orderBy('createdAt','desc').limit(100).get();
+    if(!snap.docs.length){el.innerHTML='<div class="lib-empty" style="padding:20px 0">ยังไม่มีประวัติการใช้งาน</div>';return;}
+    el.innerHTML=snap.docs.map(d=>{
+      const x=d.data()||{}; const when=x.createdAt?.toDate?x.createdAt.toDate().toLocaleString('th-TH'):'—';
+      return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="font-size:11px;color:var(--danger);padding:10px 0">โหลดประวัติไม่สำเร็จ: ${escHtml(e.message)}</div>`;
+  }
+}
+
+/* ============================================================
    AUTH
    ============================================================ */
 /* แปลง username → email ภายใน Firebase (ผู้ใช้ไม่เห็น) */
@@ -1935,7 +1972,12 @@ auth.onAuthStateChanged(async user => {
   const profileSnap = await db.collection('users').doc(user.uid).get();
   if(!profileSnap.exists){ await auth.signOut(); showLogin(); return; }
   const profile = profileSnap.data();
-  currentUser = { uid:user.uid, email:user.email, displayName:profile.displayName||user.email, role:profile.role||'staff' };
+  let isOwner = false;
+  try{
+    const initSnap = await db.collection('settings').doc('init').get();
+    isOwner = profile.role==='admin' && initSnap.exists && initSnap.data()?.adminUid===user.uid;
+  }catch(e){ isOwner = false; }
+  currentUser = { uid:user.uid, email:user.email, displayName:profile.displayName||user.email, role:profile.role||'staff', isOwner, notificationReads:profile.notificationReads||{} };
   showApp();
 });
 
@@ -1958,10 +2000,16 @@ function showApp(){
   // This prevents the Admin tab from remaining visible when an Admin logs out
   // and a Staff account logs in without a full page refresh.
   document.getElementById('adminTab').style.display='none';
+  const userMgmt=document.getElementById('adminUserManagement');
+  if(userMgmt) userMgmt.style.display='none';
   if(currentUser.role==='admin'){
     document.getElementById('adminTab').style.display='';
     listenDeleteRequests();
-    loadUsers();
+    if(currentUser.isOwner){
+      if(userMgmt) userMgmt.style.display='';
+      loadUsers();
+    }
+    loadAuditLogs();
   }
   state = makeDefaultState();
   state.createdByName = currentUser.displayName;
@@ -2149,9 +2197,20 @@ async function loadFolders(){
   refreshFolderCountsInBackground();
 }
 
+let _folderSortMode = localStorage.getItem('livrent_folder_sort') || 'name';
+let _docSortMode = localStorage.getItem('livrent_doc_sort') || 'createdAt';
+function folderCreatedMs(f){ return f?.createdAt?.toMillis ? f.createdAt.toMillis() : Number(f?.createdAt||0); }
+function documentCreatedMs(f){ return f?.createdAt?.toMillis ? f.createdAt.toMillis() : Number(f?.createdAt||0); }
 function naturalFolderSort(a,b){
   const collator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
   return collator.compare(String(a?.name||''),String(b?.name||''));
+}
+function folderSortComparator(a,b){
+  if(_folderSortMode==='createdAt'){
+    const d=folderCreatedMs(a)-folderCreatedMs(b);
+    if(d!==0)return d;
+  }
+  return naturalFolderSort(a,b);
 }
 
 function renderFolderList(){
@@ -2165,7 +2224,7 @@ function renderFolderList(){
   let html='';
 
   if(parentView){
-    const children=getChildFolders(parentView.id).filter(f=>!f.orphaned).slice().sort(naturalFolderSort);
+    const children=getChildFolders(parentView.id).filter(f=>!f.orphaned).slice().sort(folderSortComparator);
     const backName = (t('backToFolders') || 'โฟลเดอร์ทั้งหมด');
     html+=`<div class="folder-item" data-folder-back="1" style="justify-content:flex-start;color:var(--maroon);font-weight:700">← ${escHtml(backName)}</div>`;
     html+=`<div class="folder-item folder-level-1 active" style="justify-content:flex-start;cursor:default">
@@ -2178,7 +2237,8 @@ function renderFolderList(){
     }
     children.forEach(child=>{
       const cnt=folderDocCounts[child.id]||0;
-      const edit=isAdmin?`<button class="folder-tool" data-folder-edit="${child.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
+      const canEditChild=isAdmin || (currentUser?.role==='staff' && (child.parentId || Number(child.level||0)===2));
+      const edit=canEditChild?`<button class="folder-tool" data-folder-edit="${child.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
       const del=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${child.id}" data-parent="0" data-fname="${escAttr(child.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
       html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
         <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span>
@@ -2190,9 +2250,9 @@ function renderFolderList(){
     html+=`<div class="folder-item${currentFolderId==='__all__'?' active':''}" data-fid="__all__" style="justify-content:flex-start">
       <span style="flex:1">${t('other')}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:4px">(${otherCount})</span><span class="folder-type-tag ft-all">OTHER</span>
     </div>`;
-    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).sort(naturalFolderSort);
+    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).sort(folderSortComparator);
     parents.forEach(parent=>{
-      const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice().sort(naturalFolderSort);
+      const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice().sort(folderSortComparator);
       const parentCount=children.length + (folderDocCounts[parent.id]||0);
       const parentEdit=isAdmin?`<button class="folder-tool" data-folder-edit="${parent.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
       const parentDelete=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${parent.id}" data-parent="1" data-fname="${escAttr(parent.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
@@ -2202,12 +2262,13 @@ function renderFolderList(){
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${parentCount})</span>${addChild}${parentEdit}${parentDelete}
       </div>`;
     });
-    const orphans=foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned)).sort(naturalFolderSort);
+    const orphans=foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned)).sort(folderSortComparator);
     if(orphans.length){
       html+=`<div style="padding:12px 12px 5px;color:var(--ink-soft);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${t('unfiledFolders')||'โฟลเดอร์ที่ยังไม่ได้จัดหมวด'}</div>`;
       orphans.forEach(child=>{
         const cnt=folderDocCounts[child.id]||0;
-        const edit=isAdmin?`<button class="folder-tool" data-folder-edit="${child.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
+        const canEditChild=isAdmin || (currentUser?.role==='staff' && (child.parentId || Number(child.level||0)===2));
+      const edit=canEditChild?`<button class="folder-tool" data-folder-edit="${child.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
         const del=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${child.id}" data-parent="0" data-fname="${escAttr(child.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
         html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
           <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${del}
@@ -2323,9 +2384,6 @@ function openNewParentFolder(){
   document.getElementById('folderContractEnd').value='';
   document.getElementById('folderBillingDay').value='';
   document.getElementById('folderBillingReminder').value='3';
-  document.getElementById('folderContractPdf').value='';
-  document.getElementById('folderContractStatus').textContent='';
-  document.getElementById('folderContractActions').style.display='none';
   document.getElementById('folderModal').classList.remove('hidden');
 }
 function openNewChildFolder(parentId){
@@ -2339,13 +2397,12 @@ function openNewChildFolder(parentId){
   document.getElementById('folderContractEnd').value='';
   document.getElementById('folderBillingDay').value='';
   document.getElementById('folderBillingReminder').value='3';
-  document.getElementById('folderContractPdf').value='';
-  document.getElementById('folderContractStatus').textContent='';
-  document.getElementById('folderContractActions').style.display='none';
   document.getElementById('folderModal').classList.remove('hidden');
 }
 function openFolderEdit(fid){
   const f=foldersCache.find(x=>x.id===fid); if(!f)return;
+  const allowed = currentUser?.role==='admin' || (currentUser?.role==='staff' && (f.parentId || Number(f.level||0)===2));
+  if(!allowed){ alert('Staff แก้ไขได้เฉพาะโฟลเดอร์ย่อย'); return; }
   _editingFolderId=fid;
   configureFolderModal(f.parentId?'child':'parent',f.parentId||null);
   document.getElementById('folderModalTitle').textContent=(t('editFolder')||'แก้ไขโฟลเดอร์')+(f.parentId?` — ${foldersCache.find(x=>x.id===f.parentId)?.name||''}`:'');
@@ -2357,17 +2414,6 @@ function openFolderEdit(fid){
   document.getElementById('folderContractEnd').value=f.contractEnd||'';
   document.getElementById('folderBillingDay').value=f.billingDay||'';
   document.getElementById('folderBillingReminder').value=(f.billingReminderDays===0?0:(f.billingReminderDays||3));
-  document.getElementById('folderContractPdf').value='';
-  document.getElementById('folderContractStatus').textContent='';
-  document.getElementById('folderContractActions').style.display='none';
-  const contractUrl=getContractUrl(f);
-  if(f.parentId && contractUrl){
-    document.getElementById('folderContractStatus').textContent='✓ '+(t('hasPdf')||'มีไฟล์ PDF แนบอยู่');
-    document.getElementById('folderContractActions').style.display='flex';
-    document.getElementById('folderContractView').onclick=async()=>{try{const r=await fetch(contractUrl);const b=await r.blob();const u=URL.createObjectURL(b);const w=window.open();if(w)w.document.write('<iframe src="'+u+'" style="width:100%;height:100%;border:none"></iframe>');}catch(e){window.open(contractUrl,'_blank');}};
-    document.getElementById('folderContractShare').onclick=async()=>{try{const r=await fetch(contractUrl);const b=await r.blob();const file=new File([b],f.contractPdfName||'contract.pdf',{type:'application/pdf'});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:f.name});return;}const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=f.contractPdfName||'contract.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(u),8000);}catch(e){window.open(contractUrl,'_blank');}};
-    document.getElementById('folderContractClear').onclick=async()=>{if(!confirm(t('confirmDeletePdf')||'ลบไฟล์ PDF?'))return;if(f.contractPdfPath)await deleteStorageContract(f.contractPdfPath);await db.collection('folders').doc(fid).update({contractPdfUrl:firebase.firestore.FieldValue.delete(),contractPdfPath:firebase.firestore.FieldValue.delete(),contractPdfName:firebase.firestore.FieldValue.delete(),contractPdfData:firebase.firestore.FieldValue.delete(),billingDay:firebase.firestore.FieldValue.delete(),billingReminderDays:firebase.firestore.FieldValue.delete()});await loadFolders();openFolderEdit(fid);};
-  }
   document.getElementById('folderModal').classList.remove('hidden');
 }
 
@@ -2375,8 +2421,15 @@ function openFolderEdit(fid){
    FOLDER INFO + ATTACHED FILES — V5.9.1
    ============================================================ */
 function currentLibraryFolder(){
-  if(typeof currentFolderId==='undefined' || currentFolderId==='__all__' || currentFolderId==='__parent_view__') return null;
+  if(typeof currentFolderId==='undefined') return null;
+  if(currentFolderId==='__parent_view__' && currentParentViewId) return Array.isArray(foldersCache) ? (foldersCache.find(f=>f.id===currentParentViewId)||null) : null;
+  if(currentFolderId==='__all__') return null;
   return Array.isArray(foldersCache) ? (foldersCache.find(f=>f.id===currentFolderId)||null) : null;
+}
+function currentLibraryLocationId(){
+  if(currentFolderId==='__all__') return null;
+  if(currentFolderId==='__parent_view__') return currentParentViewId||null;
+  return currentFolderId||null;
 }
 function fmtFileSize(bytes){
   const n=Number(bytes||0); if(n<1024) return n+' B';
@@ -2394,7 +2447,6 @@ function fileIcon(name,type){
   return '📎';
 }
 async function getFolderFiles(folderId){
-  if(!folderId) return [];
   const snap=await db.collection('folderFiles').where('folderId','==',folderId).get();
   return snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
     const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
@@ -2406,9 +2458,10 @@ async function loadFolderFiles(){
   const el=document.getElementById('folderFilesSection');
   if(!el) return;
   const folder=currentLibraryFolder();
-  if(!folder){ el.innerHTML=''; return; }
+  const locationId=currentLibraryLocationId();
+  if(currentFolderId==='__parent_view__' && !locationId){ el.innerHTML=''; return; }
   try{
-    const files=await getFolderFiles(folder.id);
+    const files=await getFolderFiles(locationId);
     if(!files.length){el.innerHTML='';return;}
     const canDelete=['admin','staff'].includes(String(currentUser?.role||'').toLowerCase());
     el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--maroon);margin:6px 0 8px">📎 ไฟล์แนบในโฟลเดอร์ (${files.length})</div>`+
@@ -2428,6 +2481,7 @@ async function loadFolderFiles(){
       try{
         if(f.storagePath) await storage.ref(f.storagePath).delete().catch(()=>{});
         await db.collection('folderFiles').doc(f.id).delete();
+        await writeAuditLog('file_delete','folderFile',f.id,`ลบไฟล์ "${f.name||'ไฟล์'}"`,{folderId:f.folderId||null});
         await loadFolderFiles();
         await refreshFolderInfoIfOpen();
       }catch(e){alert('ลบไฟล์ไม่สำเร็จ: '+e.message);b.disabled=false;}
@@ -2436,7 +2490,8 @@ async function loadFolderFiles(){
 }
 async function uploadFolderFiles(fileList){
   const folder=currentLibraryFolder();
-  if(!folder){alert('กรุณาเข้าโฟลเดอร์ย่อยก่อนอัปโหลดไฟล์');return;}
+  const locationId=currentLibraryLocationId();
+  if(currentFolderId==='__parent_view__' && !locationId){alert('ไม่พบตำแหน่งปัจจุบัน');return;}
   if(!currentUser || !['admin','staff'].includes(String(currentUser.role||'').toLowerCase())){alert('ไม่มีสิทธิ์อัปโหลดไฟล์');return;}
   const files=Array.from(fileList||[]);
   if(!files.length)return;
@@ -2448,17 +2503,25 @@ async function uploadFolderFiles(fileList){
       if(file.size>10*1024*1024) throw new Error(`ไฟล์ "${file.name}" ใหญ่เกิน 10 MB`);
       status.textContent=`กำลังอัปโหลด ${file.name} (${done+1}/${files.length}) ...`;
       const safe=(file.name||'file').replace(/[^a-zA-Z0-9._-]+/g,'_');
-      const path=`folderFiles/${folder.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
+      const path=`folderFiles/${locationId||'unassigned'}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
       const snap=await storage.ref(path).put(file,{contentType:file.type||'application/octet-stream'});
       const url=await snap.ref.getDownloadURL();
-      await db.collection('folderFiles').add({folderId:folder.id,name:file.name||safe,size:file.size,contentType:file.type||'application/octet-stream',url,storagePath:path,uploadedBy:currentUser.uid,uploadedByName:currentUser.displayName||currentUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await db.collection('folderFiles').add({folderId:locationId,name:file.name||safe,size:file.size,contentType:file.type||'application/octet-stream',url,storagePath:path,uploadedBy:currentUser.uid,uploadedByName:currentUser.displayName||currentUser.email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       done++;
+      await writeAuditLog('file_upload','folderFile',null,`อัปโหลดไฟล์ "${file.name||safe}"`,{folderId:locationId,size:file.size,contentType:file.type||'application/octet-stream'});
     }
     status.textContent=`✓ อัปโหลดสำเร็จ ${done} ไฟล์`;
     await loadFolderFiles();
     await refreshFolderInfoIfOpen();
     setTimeout(()=>{status.style.display='none';},2200);
-  }catch(e){status.textContent=`อัปโหลดสำเร็จ ${done}/${files.length} ไฟล์ — ${e.message}`;alert('อัปโหลดไม่สำเร็จ: '+e.message);await loadFolderFiles();}
+  }catch(e){
+    const permission=/permission|unauthorized|insufficient/i.test(String(e?.message||''));
+    status.textContent=`อัปโหลดสำเร็จ ${done}/${files.length} ไฟล์ — ${e.message}`;
+    alert(permission
+      ? 'อัปโหลดไม่ได้ เพราะ Firebase Storage Rules ยังไม่อนุญาตผู้ใช้บัญชีนี้ให้เขียนไฟล์ในโฟลเดอร์ folderFiles (ต้องแก้ Rules ที่ Firebase Console)'
+      : 'อัปโหลดไม่สำเร็จ: '+e.message);
+    await loadFolderFiles();
+  }
 }
 function daysFromToday(iso){
   if(!iso)return null;
@@ -2477,7 +2540,7 @@ function isoLocal(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padSt
 function folderTypeLabel(type){return FOLDER_TYPES[type]?.label||type||'—';}
 function openFolderInfo(){
   const f=currentLibraryFolder();
-  if(!f){alert('กรุณาเข้าโฟลเดอร์ย่อยก่อน');return;}
+  if(!f){alert('กรุณาเลือกโฟลเดอร์ก่อน');return;}
   const parent=f.parentId?foldersCache.find(x=>x.id===f.parentId):null;
   const endDays=daysFromToday(f.contractEnd);
   const bill=nextBillingDate(f); const billIso=isoLocal(bill); const billDays=billIso?daysFromToday(billIso):null;
@@ -2504,18 +2567,24 @@ function openFolderInfo(){
 }
 async function refreshFolderInfoIfOpen(){
   const modal=document.getElementById('folderInfoModal'); if(!modal||modal.classList.contains('hidden'))return;
-  const f=currentLibraryFolder(); if(!f)return;
-  try{const files=await getFolderFiles(f.id);const el=document.getElementById('folderInfoFileCount');if(el)el.textContent=`📎 ไฟล์แนบ: ${files.length} ไฟล์ (เปิดดู/ดาวน์โหลดได้ และลบได้)`;}catch(e){}
+  const locationId=currentLibraryLocationId(); if(currentFolderId==='__parent_view__'&&!locationId)return;
+  try{const files=await getFolderFiles(locationId);const el=document.getElementById('folderInfoFileCount');if(el)el.textContent=`📎 ไฟล์แนบ: ${files.length} ไฟล์ (เปิดดู/ดาวน์โหลดได้ และลบได้)`;}catch(e){}
 }
 
 document.getElementById('libFolderInfoBtn')?.addEventListener('click',openFolderInfo);
 document.getElementById('libFolderTitle')?.addEventListener('click',openFolderInfo);
 document.getElementById('folderInfoClose')?.addEventListener('click',()=>document.getElementById('folderInfoModal').classList.add('hidden'));
 document.getElementById('libUploadBtn')?.addEventListener('click',()=>{
-  if(!currentLibraryFolder()){alert('กรุณาเข้าโฟลเดอร์ย่อยก่อนอัปโหลดไฟล์');return;}
+  if(currentFolderId==='__parent_view__' && !currentParentViewId){alert('ไม่พบตำแหน่งปัจจุบัน');return;}
   document.getElementById('folderFileInput')?.click();
 });
-document.getElementById('folderFileInput')?.addEventListener('change',e=>{uploadFolderFiles(e.target.files);e.target.value='';});
+document.getElementById('folderFileInput')?.addEventListener('change',e=>{uploadFolderFiles(e.target.files);e.target.value='';});document.getElementById('folderSortSelect')?.addEventListener('change',e=>{
+  _folderSortMode=e.target.value||'name'; localStorage.setItem('livrent_folder_sort',_folderSortMode); renderFolderList();
+});
+document.getElementById('docSortSelect')?.addEventListener('change',e=>{
+  _docSortMode=e.target.value||'createdAt'; localStorage.setItem('livrent_doc_sort',_docSortMode); loadDocList();
+});
+
 
 document.getElementById('addFolderBtn').addEventListener('click',openNewParentFolder);
 document.getElementById('addFolderMobileBtn')?.addEventListener('click',openNewParentFolder);
@@ -2551,20 +2620,9 @@ document.getElementById('folderModalConfirm').addEventListener('click',async()=>
         payload.contractEnd=document.getElementById('folderContractEnd').value||'';
         payload.billingDay=document.getElementById('folderBillingDay').value ? Number(document.getElementById('folderBillingDay').value) : null;
         payload.billingReminderDays=Math.max(0,Math.min(30,Number(document.getElementById('folderBillingReminder').value||3)));
-        const pdfFile=document.getElementById('folderContractPdf').files[0];
-        if(pdfFile){
-          if(pdfFile.type!=='application/pdf'){alert(t('pdfOnly')||'กรุณาเลือกไฟล์ PDF เท่านั้น');return;}
-          if(pdfFile.size>5*1024*1024){alert(t('pdfTooLarge')||'ไฟล์ PDF ใหญ่เกิน 5MB');return;}
-          btn.textContent=t('uploading')||'กำลังอัปโหลด...';
-          const folderId=_editingFolderId||db.collection('folders').doc().id;
-          const safeBase=(pdfFile.name||'contract.pdf').replace(/[^a-zA-Z0-9._-]+/g,'_');
-          const path=`contracts/${folderId}/${Date.now()}_${safeBase}`;
-          const ref=storage.ref(path); const snap=await ref.put(pdfFile,{contentType:'application/pdf'});
-          const url=await snap.ref.getDownloadURL();
-          payload.contractPdfUrl=url;payload.contractPdfPath=path;payload.contractPdfName=pdfFile.name||safeBase;
-          if(_editingFolderId){await db.collection('folders').doc(_editingFolderId).update(payload);if(existing?.contractPdfPath&&existing.contractPdfPath!==path)await deleteStorageContract(existing.contractPdfPath);}
-          else await db.collection('folders').doc(folderId).set({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-        }else if(_editingFolderId){await db.collection('folders').doc(_editingFolderId).update(payload);}
+        if(_editingFolderId){
+          await db.collection('folders').doc(_editingFolderId).update(payload);
+        }
         else await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }else{
         if(_editingFolderId){
@@ -2574,6 +2632,11 @@ document.getElementById('folderModalConfirm').addEventListener('click',async()=>
         }else await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       }
     }
+    const newParentId = isChild ? (document.getElementById('folderParentInput')?.value || existing?.parentId || _folderParentId || null) : null;
+    const movedParent = !!_editingFolderId && !!existing && isChild && String(existing.parentId||'')!==String(newParentId||'');
+    await writeAuditLog(movedParent?'folder_move':(_editingFolderId?'folder_update':'folder_create'),'folder',_editingFolderId||null,
+      `${movedParent?'ย้าย':(_editingFolderId?'แก้ไข':'สร้าง')}โฟลเดอร์ "${name}"`,
+      {level:isChild?2:1,parentId:newParentId});
     document.getElementById('folderModal').classList.add('hidden');
     _editingFolderId=null;_folderParentId=null;_folderModalMode='parent';
     await loadFolders();
@@ -2654,6 +2717,7 @@ async function saveDocument(){
       const history = [...(existing.history||[]), histEntry].slice(-50);
       await ref.update({ folderId, name:fileName, data:stateClone, updatedBy:currentUser.uid, updatedByName:currentUser.displayName, updatedAt:now, history });
       if(oldFolderId!==folderId){ if(oldFolderId) await adjustFolderDocCount(oldFolderId,-1); if(folderId) await adjustFolderDocCount(folderId,1); }
+      await writeAuditLog('document_update','document',currentDocId,`แก้ไขเอกสาร "${fileName}"`,{oldFolderId,newFolderId:folderId});
     } else {
       stateClone.createdByName = currentUser.displayName;
       const histEntry = { changedBy:currentUser.uid, changedByName:currentUser.displayName, changedAt:new Date().toISOString(), changes:['__created_new_document__'] };
@@ -2662,6 +2726,7 @@ async function saveDocument(){
       if(folderId) await adjustFolderDocCount(folderId,1);
       else adjustOtherDocCount(1);
       window._livrentTotalDocCount=Number(window._livrentTotalDocCount||localStorage.getItem('livrent_total_doc_count')||0)+1; localStorage.setItem('livrent_total_doc_count',String(window._livrentTotalDocCount));
+      await writeAuditLog('document_create','document',currentDocId,`สร้างเอกสาร "${fileName}"`,{folderId});
     }
     switchTab('library'); // ไปหน้าคลังเอกสารหลังบันทึก
   } catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); }
@@ -2693,10 +2758,15 @@ async function queryLibraryDocuments(reset=true){
 
   if(isAll){
     // "อื่นๆ" = documents that have no folder at all.
-    let q=db.collection('documents').where('folderId','==',null).limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',null); if(_docSortMode!=='name') q=q.limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    docs.sort((a,b)=>_docSortMode==='name'
+      ? new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''))
+      : documentCreatedMs(b)-documentCreatedMs(a));
+    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
+    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2706,30 +2776,36 @@ async function queryLibraryDocuments(reset=true){
   // folder. Child folders are navigated into separately; their documents are
   // not mixed into the main-folder document list.
   if(isParentView){
-    let q=db.collection('documents').where('folderId','==',currentParentViewId).limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',currentParentViewId); if(_docSortMode!=='name') q=q.limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
     docs.sort((a,b)=>{
-      const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
-      const tb=b.createdAt?.toMillis?b.createdAt.toMillis():Number(b.createdAt||0);
-      return tb-ta;
+      if(_docSortMode==='name'){
+        const c=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''));
+        if(c!==0)return c;
+      }
+      return documentCreatedMs(b)-documentCreatedMs(a);
     });
+    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
   }
 
   if(selected?.parentId){
-    let q=db.collection('documents').where('folderId','==',selected.id).limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',selected.id); if(_docSortMode!=='name') q=q.limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
     docs.sort((a,b)=>{
-      const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
-      const tb=b.createdAt?.toMillis?b.createdAt.toMillis():Number(b.createdAt||0);
-      return tb-ta;
+      if(_docSortMode==='name'){
+        const c=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''));
+        if(c!==0)return c;
+      }
+      return documentCreatedMs(b)-documentCreatedMs(a);
     });
+    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2737,15 +2813,18 @@ async function queryLibraryDocuments(reset=true){
 
   // Legacy/orphaned level-1 folders can still be opened directly.
   if(selected){
-    let q=db.collection('documents').where('folderId','==',selected.id).limit(_docPageSize);
+    let q=db.collection('documents').where('folderId','==',selected.id); if(_docSortMode!=='name') q=q.limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
     docs.sort((a,b)=>{
-      const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
-      const tb=b.createdAt?.toMillis?b.createdAt.toMillis():Number(b.createdAt||0);
-      return tb-ta;
+      if(_docSortMode==='name'){
+        const c=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'}).compare(String(a?.name||''),String(b?.name||''));
+        if(c!==0)return c;
+      }
+      return documentCreatedMs(b)-documentCreatedMs(a);
     });
+    if(_docSortMode==='name'){ _docPageCursor=null; _docHasMore=false; return docs; }
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2819,6 +2898,7 @@ async function handleDocAction(act, id, name){
     const btn = document.querySelector(`[data-act="togglesent"][data-id="${id}"]`);
     const isSent = btn ? btn.dataset.sent==='1' : false;
     await db.collection('documents').doc(id).update({sentStatus:!isSent});
+    await writeAuditLog('document_sent_status','document',id,`${!isSent?'ทำเครื่องหมายส่งแล้ว':'ยกเลิกสถานะส่งแล้ว'} สำหรับเอกสาร`,{});
     loadDocList();
     return;
   }
@@ -2932,6 +3012,7 @@ async function handleDocAction(act, id, name){
     });
     if(rec.folderId) await adjustFolderDocCount(rec.folderId,1);
     else adjustOtherDocCount(1);
+    await writeAuditLog('document_duplicate','document',null,`คัดลอกเอกสาร "${rec.name||''}"`,{sourceId:id,folderId:rec.folderId||null});
     window._livrentTotalDocCount=Number(window._livrentTotalDocCount||localStorage.getItem('livrent_total_doc_count')||0)+1; localStorage.setItem('livrent_total_doc_count',String(window._livrentTotalDocCount));
     loadDocList(); // โชว์ในคลังทันที ไม่เปิด editor
   }
@@ -2952,6 +3033,7 @@ async function handleDocAction(act, id, name){
           docId:id, docName:requestName, requestedBy:currentUser.uid, requestedByName:currentUser.displayName,
           requestedAt:firebase.firestore.FieldValue.serverTimestamp(), status:'pending'
         });
+        await writeAuditLog('document_delete_request','document',id,`ส่งคำขอลบเอกสาร "${requestName||''}"`,{});
         alert('ส่งคำขอลบแล้ว รอ Admin อนุมัติ');
       });
       return;
@@ -2962,6 +3044,7 @@ async function handleDocAction(act, id, name){
       await db.collection('documents').doc(id).delete();
       if(deletedFolderId) await adjustFolderDocCount(deletedFolderId,-1);
       else adjustOtherDocCount(-1);
+      await writeAuditLog('document_delete','document',id,`ลบเอกสาร "${requestName||''}"`,{folderId:deletedFolderId});
       window._livrentTotalDocCount=Math.max(0,Number(window._livrentTotalDocCount||localStorage.getItem('livrent_total_doc_count')||0)-1); localStorage.setItem('livrent_total_doc_count',String(window._livrentTotalDocCount));
       if(currentDocId===id){ currentDocId=null; state=makeDefaultState(); fullRender(); }
       await loadFolders();
@@ -3005,6 +3088,7 @@ async function handleDocAction(act, id, name){
     const finish = async ()=>{
       const newName = inp.value.trim()||oldName;
       await db.collection('documents').doc(id).update({name:newName});
+      if(newName!==oldName) await writeAuditLog('document_rename','document',id,`เปลี่ยนชื่อเอกสารจาก "${oldName}" เป็น "${newName}"`,{});
       inp.replaceWith(Object.assign(document.createElement('div'),{className:'doc-name',textContent:newName,id:'dname-'+id}));
     };
     inp.addEventListener('blur',finish);
@@ -3124,6 +3208,7 @@ document.getElementById('docMoveConfirm').addEventListener('click',async()=>{
   try{
     const oldFolderId=_dpCurrentRec?.folderId||null;
     await db.collection('documents').doc(_dpCurrentId).update({folderId:fid});
+    await writeAuditLog('document_move','document',_dpCurrentId,`ย้ายเอกสาร "${_dpCurrentRec?.name||''}"`,{from:oldFolderId,to:fid});
     if(oldFolderId!==fid){
       if(oldFolderId) await adjustFolderDocCount(oldFolderId,-1); else adjustOtherDocCount(-1);
       if(fid) await adjustFolderDocCount(fid,1); else adjustOtherDocCount(1);
@@ -3140,6 +3225,7 @@ document.getElementById('dpMoveConfirm').addEventListener('click', async ()=>{
   const fid = document.getElementById('dpMoveSelect').value || null;
   const oldFolderId=_dpCurrentRec?.folderId||null;
   await db.collection('documents').doc(_dpCurrentId).update({folderId:fid});
+  await writeAuditLog('document_move','document',_dpCurrentId,`ย้ายเอกสาร "${_dpCurrentRec?.name||''}"`,{from:oldFolderId,to:fid});
   if(oldFolderId!==fid){
       if(oldFolderId) await adjustFolderDocCount(oldFolderId,-1); else adjustOtherDocCount(-1);
       if(fid) await adjustFolderDocCount(fid,1); else adjustOtherDocCount(1);
@@ -3213,7 +3299,7 @@ function listenDeleteRequests(){
    USER MANAGEMENT (Admin)
    ============================================================ */
 async function loadUsers(){
-  if(currentUser?.role!=='admin') return;
+  if(currentUser?.role!=='admin' || !currentUser.isOwner) return;
   const snap = await db.collection('users').get();
   const userListEl = document.getElementById('userList');
   if(!userListEl) return;
@@ -3265,6 +3351,7 @@ async function loadUsers(){
               roleUpdatedBy:currentUser.uid,
               roleUpdatedByName:currentUser.displayName
             });
+            await writeAuditLog('user_role_change','user',uid,`เปลี่ยนสิทธิ์ผู้ใช้ "${target.displayName||target.email||''}" จาก ${oldRole} เป็น ${newRole}`,{});
             await loadUsers();
             alert('เปลี่ยนสิทธิ์เรียบร้อยแล้ว');
           }catch(e){
@@ -3296,6 +3383,7 @@ async function loadUsers(){
             // cannot be deleted securely from browser code; without an Admin SDK/
             // Cloud Function, deleting the profile is the safe client-side action.
             await db.collection('users').doc(uid).delete();
+            await writeAuditLog('user_delete','user',uid,`ลบผู้ใช้งาน "${targetName}"`,{});
             await loadUsers();
             alert('ลบผู้ใช้งานออกจากระบบเรียบร้อยแล้ว');
           }catch(e){
@@ -3309,7 +3397,7 @@ async function loadUsers(){
 
 // Create new user (secondary Firebase app)
 document.getElementById('createUserBtn').addEventListener('click', async ()=>{
-  if(currentUser?.role!=='admin'){ alert('เฉพาะ Admin เท่านั้น'); return; }
+  if(currentUser?.role!=='admin' || !currentUser.isOwner){ alert('เฉพาะเจ้าของระบบเท่านั้น'); return; }
   const name     = document.getElementById('newUserName').value.trim();
   const rawUser  = document.getElementById('newUserEmail').value.trim().toLowerCase();
   const email    = toEmail(rawUser);
@@ -3330,6 +3418,7 @@ document.getElementById('createUserBtn').addEventListener('click', async ()=>{
       displayName:name, username:rawUser, email, role,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
+    await writeAuditLog('user_create','user',cred.user.uid,`สร้างผู้ใช้ "${name}" (${role})`,{email});
     await secAuth.signOut();
     await secondary.delete();
     errEl.style.color='var(--green)'; errEl.textContent='✓ สร้างบัญชีสำเร็จ';
@@ -3768,37 +3857,63 @@ async function loadStats(){
       `;
   } catch(e){ grid.innerHTML=`<div class="lib-empty">โหลดไม่สำเร็จ: ${escHtml(e.message)}</div>`; }
 }
+function rentalNotificationKey(n){
+  return `${n.folderId||'none'}|${n.type||n.kind||''}|${n.due||n.sub||''}`;
+}
+function getLocalReadNotifications(){
+  try{return JSON.parse(localStorage.getItem('livrent_rental_notif_read_'+(currentUser?.uid||''))||'{}')||{};}catch(e){return {};}
+}
+async function markRentalNotificationRead(n){
+  const key=rentalNotificationKey(n);
+  const reads=getLocalReadNotifications(); reads[key]=Date.now();
+  localStorage.setItem('livrent_rental_notif_read_'+(currentUser?.uid||''),JSON.stringify(reads));
+  if(currentUser) currentUser.notificationReads=Object.assign({},currentUser.notificationReads||{}, {[key]:Date.now()});
+  try{
+    await db.collection('users').doc(currentUser.uid).set({rentalNotificationReads:{[key]:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});
+  }catch(e){}
+  refreshRentalNotificationBadge();
+}
 function rentalNotificationItems(){
   const out=[];
-  const today=new Date(); today.setHours(0,0,0,0);
   (foldersCache||[]).filter(f=>String(f.type||'')==='rent').forEach(f=>{
     if(f.contractEnd){
       const d=daysFromToday(f.contractEnd);
-      if(d!==null && d<=30) out.push({kind:d<0?'danger':d<=7?'warn':'',sort:d<0?-100+d:d,title:d<0?`สัญญาหมดแล้ว — ${f.name}`:d===0?`สัญญาหมดวันนี้ — ${f.name}`:`สัญญาใกล้หมด — ${f.name}`,sub:`หมดสัญญา ${formatDate(f.contractEnd)} · ${d<0?'เลยกำหนด '+Math.abs(d)+' วัน':d===0?'วันนี้':'เหลือ '+d+' วัน'}`,folderId:f.id});
+      if(d!==null && d<=30) out.push({kind:d<0?'danger':d<=7?'warn':'',type:'contract',due:f.contractEnd,sort:d<0?-100+d:d,title:d<0?`สัญญาหมดแล้ว — ${f.name}`:d===0?`สัญญาหมดวันนี้ — ${f.name}`:`สัญญาใกล้หมด — ${f.name}`,sub:`หมดสัญญา ${formatDate(f.contractEnd)} · ${d<0?'เลยกำหนด '+Math.abs(d)+' วัน':d===0?'วันนี้':'เหลือ '+d+' วัน'}`,folderId:f.id});
     }
     const bill=nextBillingDate(f); const iso=isoLocal(bill); const d=iso?daysFromToday(iso):null; const remind=Number(f.billingReminderDays??3);
-    if(d!==null && d>=0 && d<=remind) out.push({kind:d===0?'danger':'warn',sort:d,title:d===0?`ถึงวันวางบิลวันนี้ — ${f.name}`:`ใกล้ถึงวันวางบิล — ${f.name}`,sub:`วันวางบิล ${formatDate(iso)} · ${d===0?'วันนี้':'เหลือ '+d+' วัน'} · เตือนล่วงหน้า ${remind} วัน`,folderId:f.id});
+    if(d!==null && d>=0 && d<=remind) out.push({kind:d===0?'danger':'warn',type:'billing',due:iso,sort:d,title:d===0?`ถึงวันวางบิลวันนี้ — ${f.name}`:`ใกล้ถึงวันวางบิล — ${f.name}`,sub:`วันวางบิล ${formatDate(iso)} · ${d===0?'วันนี้':'เหลือ '+d+' วัน'} · เตือนล่วงหน้า ${remind} วัน`,folderId:f.id});
   });
   return out.sort((a,b)=>a.sort-b.sort);
 }
+function rentalNotificationReadMap(){
+  return Object.assign({},currentUser?.notificationReads||{},getLocalReadNotifications());
+}
 function refreshRentalNotificationBadge(){
-  const items=rentalNotificationItems();
-  const dot=document.getElementById('notifDot');
-  const drawerDot=document.getElementById('drawerNotifDot');
-  if(dot) dot.classList.toggle('visible',items.length>0);
-  if(drawerDot) drawerDot.style.display=items.length?'inline-block':'none';
+  const items=rentalNotificationItems(), reads=rentalNotificationReadMap();
+  const unread=items.filter(n=>!reads[rentalNotificationKey(n)]);
+  const dot=document.getElementById('notifDot'), drawerDot=document.getElementById('drawerNotifDot');
+  if(dot) dot.classList.toggle('visible',unread.length>0);
+  if(drawerDot) drawerDot.style.display=unread.length?'inline-block':'none';
   return items;
 }
 function openRentalNotifications(){
-  const list=document.getElementById('rentalNotifList'); const items=refreshRentalNotificationBadge();
+  const list=document.getElementById('rentalNotifList'), items=refreshRentalNotificationBadge(), reads=rentalNotificationReadMap();
   if(!items.length){list.innerHTML='<div class="lib-empty" style="padding:30px 15px">🎉 ตอนนี้ยังไม่มีรายการที่ต้องแจ้งเตือน</div>';}
-  else list.innerHTML=items.map(n=>`<div class="rental-notif-item ${n.kind}"><div class="rn-title">${escHtml(n.title)}</div><div class="rn-sub">${escHtml(n.sub)}</div><button class="contract-btn" style="margin-top:7px" data-notif-folder="${escAttr(n.folderId)}">เปิดโฟลเดอร์</button></div>`).join('');
-  list.querySelectorAll('[data-notif-folder]').forEach(b=>b.addEventListener('click',()=>{
+  else list.innerHTML=items.map(n=>{
+    const read=!!reads[rentalNotificationKey(n)];
+    return `<div class="rental-notif-item ${n.kind}" style="${read?'opacity:.62':''}">
+      <div class="rn-title">${escHtml(n.title)} ${read?'<span style="font-size:10px;color:var(--ink-soft)">✓ อ่านแล้ว</span>':''}</div>
+      <div class="rn-sub">${escHtml(n.sub)}</div>
+      <button class="contract-btn" style="margin-top:7px" data-notif-folder="${escAttr(n.folderId)}" data-notif-key="${escAttr(rentalNotificationKey(n))}">เปิดโฟลเดอร์</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('[data-notif-folder]').forEach(b=>b.addEventListener('click',async()=>{
+    const n=items.find(x=>rentalNotificationKey(x)===b.dataset.notifKey);
+    if(n) await markRentalNotificationRead(n);
     const fid=b.dataset.notifFolder; currentParentViewId=null; currentFolderId=fid; renderFolderList(); loadDocList();
     const f=foldersCache.find(x=>x.id===fid); document.getElementById('libFolderTitle').textContent=f?.name||'';
     document.getElementById('rentalNotifModal').classList.add('hidden'); closeLibSidebar();
   }));
-  document.getElementById('rentalNotifModal').classList.remove('hidden');
 }
 document.getElementById('notifBtn').addEventListener('click',openRentalNotifications);
 document.getElementById('rentalNotifClose')?.addEventListener('click',()=>document.getElementById('rentalNotifModal').classList.add('hidden'));
@@ -3822,6 +3937,8 @@ applyLang = function(){
 
 // Apply language on load
 applyLang();
+if(document.getElementById('folderSortSelect')) document.getElementById('folderSortSelect').value=_folderSortMode;
+if(document.getElementById('docSortSelect')) document.getElementById('docSortSelect').value=_docSortMode;
 initLangDropdowns();
 </script>
 
@@ -4211,6 +4328,7 @@ async function moveFolderDocumentsToOther(folderId){
     }
     if(f?.contractPdfPath)await deleteStorageContract(f.contractPdfPath);
     await db.collection('folders').doc(fid).delete();
+    await writeAuditLog('folder_delete','folder',fid,`ลบโฟลเดอร์ "${fname}"`,{parent:isParent,children:children.length});
     if(currentFolderId===fid || currentParentViewId===fid){currentFolderId='__all__';currentParentViewId=null;}
     await loadFolders();
     loadDocList();
