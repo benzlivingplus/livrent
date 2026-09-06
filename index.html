@@ -565,12 +565,9 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 
 
 .lib-title-wrap{display:flex;align-items:center;min-width:0;}
-/* ===== V5.9.3 folder info / PDF attachments ===== */
+/* ===== V5.9.4 folder info / PDF attachments ===== */
 .lib-top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .folder-title-clickable{cursor:pointer}
-.lib-sort-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
-.lib-sort-row label{font-size:11px;color:var(--ink-soft)}
-.lib-sort-row select{font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit}
 .audit-list{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow:auto}
 .audit-item{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#fff;font-size:11.5px;display:flex;gap:10px;align-items:flex-start}
 .audit-item .audit-main{flex:1;min-width:0}.audit-item .audit-who{font-weight:700;color:var(--maroon)}
@@ -580,6 +577,7 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 .folder-info-btn{border:1px solid var(--line);background:#fff;color:var(--maroon);border-radius:50%;width:28px;height:28px;cursor:pointer;font-weight:700}
 .folder-info-btn:hover{background:var(--line-soft)}
 .folder-file-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:9px;display:flex;align-items:center;gap:10px}
+.documents-system-card{cursor:pointer}.documents-system-card:hover{border-color:var(--maroon);box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .folder-file-icon{font-size:24px;line-height:1;flex-shrink:0}
 .folder-file-main{min-width:0;flex:1}
 .folder-file-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1900,7 +1898,7 @@ function thaiBahtText(numStr){
 }
 
 /* ============================================================
-   AUDIT LOG — V5.9.3
+   AUDIT LOG — V5.9.4
    ============================================================ */
 async function writeAuditLog(action, entityType, entityId, summary, meta={}){
   try{
@@ -2229,13 +2227,6 @@ function renderFolderList(){
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${del}
         <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
       </div>`;
-      const docsFolder=getDocumentsFolderFor(child.id);
-      if(docsFolder){
-        const activeDocs=currentFolderId===docsFolder.id;
-        html+=`<div class="folder-item folder-level-3${activeDocs?' active':''}" data-fid="${docsFolder.id}" data-system-folder="documents" style="justify-content:flex-start;padding-left:52px;font-size:11px;${activeDocs?'font-weight:700;':''}">
-          <span class="folder-icon">📁</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(t('documentsFolder')||'เอกสาร')}</span>
-        </div>`;
-      }
     });
   }else{
     html+=`<div class="folder-item${currentFolderId==='__all__'?' active':''}" data-fid="__all__" style="justify-content:flex-start">
@@ -2324,8 +2315,9 @@ function renderFolderList(){
     }
     renderFolderList(); loadDocList();
     const f=foldersCache.find(x=>x.id===currentFolderId);
-    document.getElementById('libFolderTitle').textContent=currentFolderId==='__all__'?t('other'):(f?.name||'');
-    const trigger=document.getElementById('libSidebarTrigger'); if(trigger) trigger.textContent='📂 '+(currentFolderId==='__all__'?t('other'):(f?.name||''));
+    const titleFolder=isDocumentsFolder(f) ? (t('documentsFolder')||'เอกสาร')+' — '+(foldersCache.find(x=>x.id===f.parentId)?.name||'') : (currentFolderId==='__all__'?t('other'):(f?.name||''));
+    document.getElementById('libFolderTitle').textContent=titleFolder;
+    const trigger=document.getElementById('libSidebarTrigger'); if(trigger) trigger.textContent='📂 '+(isDocumentsFolder(f)?(t('documentsFolder')||'เอกสาร'):(currentFolderId==='__all__'?t('other'):(f?.name||'')));
     closeLibSidebar(); setTimeout(updateRentalContractHeading,0);
   }));
   list.querySelectorAll('[data-folder-edit]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openFolderEdit(btn.dataset.folderEdit);}));
@@ -2478,28 +2470,24 @@ async function getFolderFiles(folderId){
   const house=f && isDocumentsFolder(f) ? foldersCache.find(x=>x.id===f.parentId) : null;
   const source=house || f;
   const files=Array.isArray(source?.contractFiles)?source.contractFiles:[];
-  return files.map(x=>({...x})).sort((a,b)=>{
-    const ta=a.createdAt?.toMillis?a.createdAt.toMillis():Number(a.createdAt||0);
-    const tb=b.createdAt?.toMillis?b.createdAt.toMillis():Number(b.createdAt||0);
-    return tb-ta;
-  });
+  // Keep the stored order. V5.9.4 intentionally has no file sorting UI/logic.
+  return files.map(x=>({...x}));
 }
 async function loadFolderFiles(){
   const el=document.getElementById('folderFilesSection');
   if(!el) return;
-  let folder=currentLibraryFolder();
-  if(folder && isDocumentsFolder(folder)){ folder=foldersCache.find(x=>x.id===folder.parentId)||folder; }
+  // Attachments are shown only inside the protected Documents system folder.
+  if(!isDocumentsFolder(currentLibraryFolder())){ el.innerHTML=''; return; }
   const locationId=currentLibraryLocationId();
-  if(currentFolderId==='__parent_view__' && !locationId){ el.innerHTML=''; return; }
   try{
     const files=await getFolderFiles(locationId);
     if(!files.length){el.innerHTML='';return;}
     const canDelete=['admin','staff'].includes(String(currentUser?.role||'').toLowerCase());
-    el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--maroon);margin:6px 0 8px">📎 ไฟล์แนบในโฟลเดอร์ (${files.length})</div>`+
+    el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--maroon);margin:6px 0 8px">📎 ${t('documentsFolder')||'เอกสาร'} (${files.length})</div>`+
       files.map(f=>`<div class="folder-file-card" data-file-id="${escAttr(f.id)}">
         <div class="folder-file-icon">${fileIcon(f.name,f.contentType)}</div>
-        <div class="folder-file-main"><div class="folder-file-name" title="${escAttr(f.name||'')} ">${escHtml(f.name||'ไฟล์')}</div><div class="folder-file-meta">${fmtFileSize(f.size)} · ${escHtml(f.uploadedByName||'—')} · ${f.createdAt?.toDate?f.createdAt.toDate().toLocaleString('th-TH'):'—'}</div></div>
-        <div class="folder-file-actions"><button data-file-open="${escAttr(f.id)}">เปิด</button>${canDelete?`<button class="danger" data-file-delete="${escAttr(f.id)}">ลบ</button>`:''}</div>
+        <div class="folder-file-main"><div class="folder-file-name" title="${escAttr(f.name||'')} ">${escHtml(f.name||'ไฟล์')}</div><div class="folder-file-meta">${fmtFileSize(f.size)} · ${escHtml(f.uploadedByName||'—')} · ${f.createdAt?formatDateTimeValue(f.createdAt):'—'}</div></div>
+        <div class="folder-file-actions"><button data-file-open="${escAttr(f.id)}">${t('openPdf')||'เปิด'}</button>${canDelete?`<button class="danger" data-file-delete="${escAttr(f.id)}">ลบ</button>`:''}</div>
       </div>`).join('');
     el.querySelectorAll('[data-file-open]').forEach(b=>b.addEventListener('click',async()=>{
       const f=files.find(x=>x.id===b.dataset.fileOpen); if(!f?.url)return;
@@ -2523,6 +2511,25 @@ async function loadFolderFiles(){
     }));
   }catch(e){el.innerHTML=`<div style="font-size:11px;color:var(--danger);padding:8px 0">โหลดไฟล์แนบไม่สำเร็จ: ${escHtml(e.message)}</div>`;}
 }
+function formatDateTimeValue(v){
+  try{
+    const d=v?.toDate?v.toDate():new Date(v);
+    return isNaN(d.getTime())?'—':d.toLocaleString('th-TH');
+  }catch(e){return '—';}
+}
+function renderDocumentsSystemCard(houseFolder){
+  const docsFolder=getDocumentsFolderFor(houseFolder?.id);
+  if(!docsFolder) return '';
+  const files=Array.isArray(houseFolder?.contractFiles)?houseFolder.contractFiles:[];
+  return `<div class="folder-file-card documents-system-card" data-open-documents="${escAttr(docsFolder.id)}">
+    <div class="folder-file-icon">📁</div>
+    <div class="folder-file-main">
+      <div class="folder-file-name">${escHtml(t('documentsFolder')||'เอกสาร')}</div>
+      <div class="folder-file-meta">📎 ${files.length} ${files.length===1?'ไฟล์':'ไฟล์'} · ${t('documentsFolder')||'เอกสาร'}</div>
+    </div>
+    <div class="folder-file-actions"><button type="button">เปิด</button></div>
+  </div>`;
+}
 async function uploadFolderFiles(fileList){
   const folder=currentLibraryFolder();
   if(!folder || !isDocumentsFolder(folder)){ alert('กรุณาเข้าโฟลเดอร์ "'+(t('documentsFolder')||'เอกสาร')+'" ก่อนอัปโหลด'); return; }
@@ -2542,7 +2549,7 @@ async function uploadFolderFiles(fileList){
       status.textContent=`กำลังอัปโหลด ${file.name} (${done+1}/${files.length}) ...`;
       const safe=(file.name||'file.pdf').replace(/[^a-zA-Z0-9._-]+/g,'_');
       // Reuse the existing contracts/ Storage namespace so no new Firebase
-      // Storage rule is required for this V5.9.3 upload flow.
+      // Storage rule is required for this V5.9.4 upload flow.
       const path=`contracts/${houseFolder.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
       const snap=await storage.ref(path).put(file,{contentType:'application/pdf'});
       const url=await snap.ref.getDownloadURL();
@@ -2819,7 +2826,6 @@ async function queryLibraryDocuments(reset=true){
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2833,7 +2839,6 @@ async function queryLibraryDocuments(reset=true){
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2844,7 +2849,6 @@ async function queryLibraryDocuments(reset=true){
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2856,7 +2860,6 @@ async function queryLibraryDocuments(reset=true){
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    docs.sort((a,b)=>documentCreatedMs(b)-documentCreatedMs(a));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -2884,6 +2887,9 @@ async function loadDocList(keepExisting=false,loadMore=false){
   // main folder, while the sidebar shows its child folders separately.
   if(!loadMore){ _docPageCursor=null; _docHasMore=false; if(!keepExisting) docListEl.innerHTML='<div class="lib-empty">'+t('loading')+'</div>'; }
   try{
+    const selectedFolder=currentLibraryFolder();
+    const showDocumentsCard=!!(selectedFolder && isChildFolder(selectedFolder));
+    const documentsCardHtml=(!loadMore && showDocumentsCard) ? renderDocumentsSystemCard(selectedFolder) : '';
     const docs=await queryLibraryDocuments(!loadMore);
     if(loadMore && !docs.length){ renderLoadMoreButton(); return; }
     const userRole=String(currentUser?.role||'').toLowerCase();
@@ -2912,8 +2918,21 @@ async function loadDocList(keepExisting=false,loadMore=false){
         <div class="doc-actions"><button class="card-pdf-btn desktop-pdf-btn" data-act="export" data-id="${rec.id}">📕 PDF</button>${sentBtn}${editBtn}<button data-act="dup" data-id="${rec.id}">${t('cardDup')}</button>${histBtn}<button data-act="move" data-id="${rec.id}">${t('cardMove')}</button>${delBtn}</div>
       </div>`;
     }).join('');
-    if(loadMore) docListEl.insertAdjacentHTML('beforeend',html); else docListEl.innerHTML=html;
-    if(!docs.length && !loadMore) docListEl.innerHTML='<div class="lib-empty">'+t('noDocuments')+'<br><br>'+t('pressCreate')+'</div>';
+    if(loadMore) docListEl.insertAdjacentHTML('beforeend',html); else docListEl.innerHTML=documentsCardHtml+html;
+    if(!docs.length && !loadMore && !documentsCardHtml) docListEl.innerHTML='<div class="lib-empty">'+t('noDocuments')+'<br><br>'+t('pressCreate')+'</div>';
+    docListEl.querySelectorAll('[data-open-documents]').forEach(card=>card.addEventListener('click',e=>{
+      const fid=card.dataset.openDocuments;
+      const f=foldersCache.find(x=>x.id===fid);
+      if(!f) return;
+      currentFolderId=fid;
+      currentParentViewId=f.parentId ? (foldersCache.find(x=>x.id===f.parentId)?.parentId||null) : null;
+      renderFolderList();
+      document.getElementById('libFolderTitle').textContent=(t('documentsFolder')||'เอกสาร')+' — '+(foldersCache.find(x=>x.id===f.parentId)?.name||'');
+      const trigger=document.getElementById('libSidebarTrigger'); if(trigger) trigger.textContent='📂 '+(t('documentsFolder')||'เอกสาร');
+      loadDocList();
+      closeLibSidebar();
+      setTimeout(updateRentalContractHeading,0);
+    }));
     docListEl.querySelectorAll('[data-act]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();handleDocAction(el.dataset.act,el.dataset.id,el.dataset.name||'');}));
     let more=document.getElementById('docLoadMore');
     if(!more){ more=document.createElement('div'); more.id='docLoadMore'; more.style.cssText='display:flex;justify-content:center;padding:14px 0 24px;'; docListEl.parentElement.appendChild(more); }
