@@ -565,7 +565,7 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 
 
 .lib-title-wrap{display:flex;align-items:center;min-width:0;}
-/* ===== V5.9.4 folder info / PDF attachments ===== */
+/* ===== V5.9.5 folder info / PDF attachments ===== */
 .lib-top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .folder-title-clickable{cursor:pointer}
 .audit-list{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow:auto}
@@ -935,6 +935,31 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 <style>
 #docLoadMore{display:flex;justify-content:center;align-items:center;padding:12px 0 24px;}
 </style>
+<style>
+.rental-calendar-page{padding:22px;overflow-y:auto;flex:1;}
+.rental-calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;}
+.rental-month-nav{display:flex;gap:5px;align-items:center;}
+.rental-month-nav button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer;font-family:inherit;}
+.rental-month-nav button:hover{border-color:var(--maroon);color:var(--maroon);}
+.rental-month-label{text-align:center;font-size:20px;font-weight:800;color:var(--maroon);padding:8px 0 14px;}
+.rental-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.rental-summary-card{background:#fff;border:1px solid var(--line);border-radius:7px;padding:12px;}
+.rental-summary-card .n{font-size:22px;font-weight:800;color:var(--maroon);}
+.rental-summary-card .l{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.rental-calendar-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.rental-calendar-panel{background:#fff;border:1px solid var(--line);border-radius:7px;padding:14px;}
+.rental-calendar-panel h3{margin:0 0 10px;font-size:14px;color:var(--maroon);}
+.rental-day-group{border-top:1px solid var(--line-soft);padding:9px 0;}
+.rental-day-group:first-child{border-top:0;padding-top:0;}
+.rental-day-title{font-weight:800;font-size:12px;margin-bottom:6px;}
+.rental-house-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;background:var(--line-soft);border-radius:6px;margin:4px 0;font-size:12px;}
+.rental-house-row button{border:1px solid var(--line);background:#fff;border-radius:5px;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:11px;}
+.rental-house-row button:hover{color:var(--maroon);border-color:var(--maroon);}
+.rental-rule-row{display:grid;grid-template-columns:1.4fr .8fr .8fr .8fr;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-soft);font-size:11px;}
+.rental-rule-row:first-child{border-top:0;}
+.rental-rule-head{font-weight:700;color:var(--ink-soft);}
+@media(max-width:700px){.rental-calendar-page{padding:12px}.rental-calendar-head{align-items:flex-start;flex-direction:column}.rental-summary-grid{grid-template-columns:1fr 1fr}.rental-calendar-grid{grid-template-columns:1fr}.rental-rule-row{grid-template-columns:1.5fr .8fr .8fr;}.rental-rule-row .hide-mobile{display:none;}}
+</style>
 </head>
 <body>
 <!-- ============ LOGIN ============ -->
@@ -1023,6 +1048,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
     <button class="tab-btn active" data-tab="library" data-i18n="tabLibrary">📁 คลังเอกสาร</button>
     <button class="tab-btn" data-tab="editor" data-i18n="tabEditor">✏️ สร้างเอกสาร</button>
     <button class="tab-btn" data-tab="stats" id="statsTab" data-i18n="tabStats">📊 สถิติ</button>
+    <button class="tab-btn" data-tab="notifications" id="notificationsTab" data-i18n="tabNotifications">🔔 แจ้งเตือน</button>
     <button class="tab-btn" data-tab="admin" id="adminTab" style="display:none"><span id="adminTabLabel">⚙️ จัดการ</span> <span class="tab-badge" id="reqBadge" style="display:none">0</span></button>
   </div>
 
@@ -1216,12 +1242,10 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
     <!-- MOBILE FOLDER SELECT -->
     <div class="mobile-folder-bar" id="mobileFolderBar">
       <button class="lib-folder-trigger" id="libSidebarTrigger">📂 โฟลเดอร์</button>
-      <button class="add-folder-mobile-btn" id="addFolderMobileBtn" title="สร้างโฟลเดอร์">+</button>
     </div>
     <div class="lib-sidebar">
       <div class="lib-sidebar-head">
         <span>โฟลเดอร์</span>
-        <button id="addFolderBtn" title="สร้างโฟลเดอร์">+</button>
       </div>
       <div class="folder-list" id="folderList"></div>
     </div>
@@ -1241,6 +1265,39 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
       <div id="folderUploadStatus" style="display:none;font-size:12px;color:var(--ink-soft);margin:-4px 0 10px;padding:8px 10px;background:var(--line-soft);border-radius:6px"></div>
       <div id="folderFilesSection"></div>
       <div id="docList"></div>
+    </div>
+  </div>
+
+  <!-- ===== RENTAL NOTIFICATION VIEW ===== -->
+  <div class="view" id="notificationsView">
+    <div class="rental-calendar-page">
+      <div class="rental-calendar-head">
+        <div>
+          <h2 style="margin:0 0 3px" data-i18n="notificationTitle">🔔 แจ้งเตือนค่าเช่า / สัญญา</h2>
+          <div style="font-size:11px;color:var(--ink-soft)" data-i18n="notificationSub">ดูภาพรวมวันวางบิลและวันหมดสัญญา แยกตามเดือน</div>
+        </div>
+        <div class="rental-month-nav">
+          <button type="button" id="rentalMonthPrev">‹</button>
+          <button type="button" id="rentalMonthToday" data-i18n="notificationToday">เดือนนี้</button>
+          <button type="button" id="rentalMonthNext">›</button>
+        </div>
+      </div>
+      <div class="rental-month-label" id="rentalMonthLabel"></div>
+      <div class="rental-summary-grid" id="rentalSummaryGrid"></div>
+      <div class="rental-calendar-grid">
+        <div class="rental-calendar-panel">
+          <h3 data-i18n="billingOverview">💰 วางบิลในเดือนนี้</h3>
+          <div id="rentalBillingMonthList"></div>
+        </div>
+        <div class="rental-calendar-panel">
+          <h3 data-i18n="contractExpiryOverview">📑 วันหมดสัญญาในเดือนนี้</h3>
+          <div id="rentalExpiryMonthList"></div>
+        </div>
+      </div>
+      <div class="rental-calendar-panel" style="margin-top:14px">
+        <h3 data-i18n="billingRulesOverview">🧩 กติกาการวางบิลของบ้าน</h3>
+        <div id="rentalBillingRulesList"></div>
+      </div>
     </div>
   </div>
 
@@ -1341,6 +1398,22 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </div>
 </div>
 
+<!-- ===== FOLDER MOVE MODAL v5.9.5 ===== -->
+<div class="modal-overlay hidden" id="folderMoveModal">
+  <div class="modal" style="width:430px;max-width:94vw;max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <h3 id="folderMoveTitle" style="margin:0;flex:1">ย้ายโฟลเดอร์</h3>
+      <button id="folderMoveClose" type="button" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink-soft)">×</button>
+    </div>
+    <div id="folderMoveCrumb" style="font-size:11px;color:var(--ink-soft);margin-bottom:8px"></div>
+    <div id="folderMoveBody"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button id="folderMoveCancel" class="btn btn-secondary" style="flex:1">ยกเลิก</button>
+      <button id="folderMoveConfirm" class="btn btn-primary" style="flex:1" disabled>ย้ายโฟลเดอร์</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="folderModal">
   <div class="modal" style="width:420px;max-height:92vh;overflow-y:auto">
     <h3 id="folderModalTitle">สร้างโฟลเดอร์</h3>
@@ -1375,9 +1448,13 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
         <option value="21">วันที่ 21</option><option value="22">วันที่ 22</option><option value="23">วันที่ 23</option><option value="24">วันที่ 24</option><option value="25">วันที่ 25</option>
         <option value="26">วันที่ 26</option><option value="27">วันที่ 27</option><option value="28">วันที่ 28</option><option value="29">วันที่ 29</option><option value="30">วันที่ 30</option><option value="31">วันที่ 31</option>
       </select>
+      <label>ค่าเช่าต่อรอบ (บาท)</label>
+      <input type="number" id="folderBillingAmount" min="0" step="0.01" placeholder="เช่น 30000" style="margin-bottom:6px">
+      <label>วันครบกำหนดชำระหลังวางบิล (วัน)</label>
+      <input type="number" id="folderPaymentDueDays" min="0" max="90" value="0" style="margin-bottom:6px">
       <label>แจ้งเตือนล่วงหน้า (วัน)</label>
       <input type="number" id="folderBillingReminder" min="0" max="30" value="3" style="margin-bottom:6px">
-      <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">กระดิ่งจะแจ้งก่อนวันวางบิลตามจำนวนวันที่ตั้งไว้ และเตือนวันหมดสัญญา</div>
+      <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">ข้อมูลนี้ใช้เป็นฐานสำหรับระบบวางบิลอัตโนมัติในอนาคต แต่ V5.9.5 ยังไม่สร้างใบแจ้งหนี้ให้อัตโนมัติ</div>
       
     </div>
     <div class="modal-actions">
@@ -1701,9 +1778,9 @@ Object.assign(LANG.en,{docNumberPlaceholder:'Enter manually or auto-generate',pr
 Object.assign(LANG.cn,{docNumberPlaceholder:'手动输入或自动生成',propertyAddressPlaceholder:'例如 123/45 Suk San Village Soi 3',bankPlaceholder:'例如 Kasikornbank',sigNamePlaceholder:'姓名',fileNamePlaceholder:'文件名（留空=自动）',namePlaceholder:'姓名',usernamePlaceholder:'例如 daraporn',passwordPlaceholder:'至少6位',folderNamePlaceholder:'例如 Suk San Village',exportJpg:'JPG',exportPdf:'PDF'});
 
 
-Object.assign(LANG.th,{createFolder:'สร้างโฟลเดอร์',editFolder:'แก้ไขโฟลเดอร์',save:'บันทึก',billingDay:'วันวางบิลค่าเช่าทุกเดือน',documentsFolder:'เอกสาร',uploadPdf:'⬆ อัปโหลด PDF',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',hasPdf:'มีไฟล์ PDF แนบอยู่',confirmDeletePdf:'ลบไฟล์ PDF?',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',uploading:'กำลังอัปโหลด...',folderHasChildren:'ไม่สามารถลบโฟลเดอร์ชั้นที่ 1 ได้ เพราะยังมีโฟลเดอร์ชั้นที่ 2 อยู่',confirmDeleteFolder:'ลบโฟลเดอร์',docsRemainAll:'เอกสารจะยังคงอยู่ใน "ทั้งหมด"',deleteFailed:'ลบไม่สำเร็จ',saveFailed:'บันทึกไม่สำเร็จ',backToFolders:'โฟลเดอร์ทั้งหมด',backToParent:'กลับไปโฟลเดอร์หลัก',openFolder:'เปิดโฟลเดอร์',unfiledFolders:'โฟลเดอร์ที่ยังไม่ได้จัดหมวด',moveToParent:'โฟลเดอร์หลัก',parentDeletedMsg:'โฟลเดอร์หลักถูกลบแล้ว โฟลเดอร์ย่อยถูกย้ายมาไว้ใน "โฟลเดอร์ที่ยังไม่ได้จัดหมวด"',confirmDeleteParentMsg:'ลบโฟลเดอร์หลักนี้ใช่ไหม? โฟลเดอร์ย่อยจะไม่ถูกลบ แต่จะถูกย้ายไป "โฟลเดอร์ที่ยังไม่ได้จัดหมวด" และเอกสารจะยังอยู่เหมือนเดิม',noParent:'— ยังไม่ได้จัดหมวด —'});
-Object.assign(LANG.en,{createFolder:'Create Folder',editFolder:'Edit Folder',save:'Save',billingDay:'Monthly billing day',documentsFolder:'Documents',uploadPdf:'⬆ Upload PDF',pdfOnly:'Please select PDF files only',pdfTooLarge:'PDF file is larger than 25MB',hasPdf:'PDF file attached',confirmDeletePdf:'Delete PDF file?',pdfOnly:'Please select a PDF file only',pdfTooLarge:'PDF file is larger than 25MB',uploading:'Uploading...',folderHasChildren:'Cannot delete a level-1 folder while it still has level-2 folders',confirmDeleteFolder:'Delete folder',docsRemainAll:'Documents will remain in "All"',deleteFailed:'Delete failed',saveFailed:'Save failed',backToFolders:'All folders',backToParent:'Back to main folder',openFolder:'Open folder',unfiledFolders:'Uncategorized folders',moveToParent:'Main folder',parentDeletedMsg:'The main folder was deleted. Child folders were moved to "Uncategorized folders".',confirmDeleteParentMsg:'Delete this main folder? Its child folders will not be deleted. They will be moved to "Uncategorized folders" and their documents will remain.',noParent:'— Uncategorized —'});
-Object.assign(LANG.cn,{createFolder:'创建文件夹',editFolder:'编辑文件夹',save:'保存',billingDay:'每月收款日',documentsFolder:'文件',uploadPdf:'⬆ 上传 PDF',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',hasPdf:'已附加 PDF 文件',confirmDeletePdf:'删除 PDF 文件？',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',uploading:'上传中...',folderHasChildren:'一级文件夹仍有二级文件夹，无法删除',confirmDeleteFolder:'删除文件夹',docsRemainAll:'文档仍会保留在“全部”',deleteFailed:'删除失败',saveFailed:'保存失败',backToFolders:'全部文件夹',backToParent:'返回主文件夹',openFolder:'打开文件夹',unfiledFolders:'未分类文件夹',moveToParent:'主文件夹',parentDeletedMsg:'主文件夹已删除，子文件夹已移至“未分类文件夹”。',confirmDeleteParentMsg:'确定删除此主文件夹吗？子文件夹不会删除，而会移至“未分类文件夹”，其文档保持不变。',noParent:'— 未分类 —'});
+Object.assign(LANG.th,{tabNotifications:'🔔 แจ้งเตือน',notificationTitle:'🔔 แจ้งเตือนค่าเช่า / สัญญา',notificationSub:'ดูภาพรวมวันวางบิลและวันหมดสัญญา แยกตามเดือน',notificationToday:'เดือนนี้',billingOverview:'💰 รายการวางบิลในเดือนนี้',billingDaysCount:'จำนวนวันวางบิล',propertiesWithBilling:'บ้านที่ตั้งวันวางบิล',contractExpiryOverview:'📑 วันหมดสัญญาในเดือนนี้',billingRulesOverview:'🧩 กติกาการวางบิลของบ้าน',noBillingThisMonth:'เดือนนี้ยังไม่มีรายการวางบิล',noExpiryThisMonth:'เดือนนี้ยังไม่มีบ้านหมดสัญญา',billingRuleMissing:'ยังไม่ได้ตั้งวันวางบิล',monthlyBilling:'รายเดือน',createFolder:'สร้างโฟลเดอร์',editFolder:'แก้ไขโฟลเดอร์',save:'บันทึก',billingDay:'วันวางบิลค่าเช่าทุกเดือน',documentsFolder:'เอกสาร',uploadPdf:'⬆ อัปโหลด PDF',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',hasPdf:'มีไฟล์ PDF แนบอยู่',confirmDeletePdf:'ลบไฟล์ PDF?',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',uploading:'กำลังอัปโหลด...',folderHasChildren:'ไม่สามารถลบโฟลเดอร์ชั้นที่ 1 ได้ เพราะยังมีโฟลเดอร์ชั้นที่ 2 อยู่',confirmDeleteFolder:'ลบโฟลเดอร์',docsRemainAll:'เอกสารจะยังคงอยู่ใน "ทั้งหมด"',deleteFailed:'ลบไม่สำเร็จ',saveFailed:'บันทึกไม่สำเร็จ',backToFolders:'โฟลเดอร์ทั้งหมด',backToParent:'กลับไปโฟลเดอร์หลัก',openFolder:'เปิดโฟลเดอร์',unfiledFolders:'โฟลเดอร์ที่ยังไม่ได้จัดหมวด',moveToParent:'โฟลเดอร์หลัก',parentDeletedMsg:'โฟลเดอร์หลักถูกลบแล้ว โฟลเดอร์ย่อยถูกย้ายมาไว้ใน "โฟลเดอร์ที่ยังไม่ได้จัดหมวด"',confirmDeleteParentMsg:'ลบโฟลเดอร์หลักนี้ใช่ไหม? โฟลเดอร์ย่อยจะไม่ถูกลบ แต่จะถูกย้ายไป "โฟลเดอร์ที่ยังไม่ได้จัดหมวด" และเอกสารจะยังอยู่เหมือนเดิม',noParent:'— ยังไม่ได้จัดหมวด —'});
+Object.assign(LANG.en,{tabNotifications:'🔔 Notifications',notificationTitle:'🔔 Rent / Contract Notifications',notificationSub:'Monthly overview of billing dates and contract expiries',notificationToday:'This month',billingOverview:'💰 Billing items this month',billingDaysCount:'Billing days',propertiesWithBilling:'Properties with billing rules',contractExpiryOverview:'📑 Contract expiry this month',billingRulesOverview:'🧩 Property billing rules',noBillingThisMonth:'No billing items this month',noExpiryThisMonth:'No contracts expire this month',billingRuleMissing:'Billing day not set',monthlyBilling:'Monthly',createFolder:'Create Folder',editFolder:'Edit Folder',save:'Save',billingDay:'Monthly billing day',documentsFolder:'Documents',uploadPdf:'⬆ Upload PDF',pdfOnly:'Please select PDF files only',pdfTooLarge:'PDF file is larger than 25MB',hasPdf:'PDF file attached',confirmDeletePdf:'Delete PDF file?',pdfOnly:'Please select a PDF file only',pdfTooLarge:'PDF file is larger than 25MB',uploading:'Uploading...',folderHasChildren:'Cannot delete a level-1 folder while it still has level-2 folders',confirmDeleteFolder:'Delete folder',docsRemainAll:'Documents will remain in "All"',deleteFailed:'Delete failed',saveFailed:'Save failed',backToFolders:'All folders',backToParent:'Back to main folder',openFolder:'Open folder',unfiledFolders:'Uncategorized folders',moveToParent:'Main folder',parentDeletedMsg:'The main folder was deleted. Child folders were moved to "Uncategorized folders".',confirmDeleteParentMsg:'Delete this main folder? Its child folders will not be deleted. They will be moved to "Uncategorized folders" and their documents will remain.',noParent:'— Uncategorized —'});
+Object.assign(LANG.cn,{tabNotifications:'🔔 通知',notificationTitle:'🔔 租金 / 合同通知',notificationSub:'按月份查看收款日和合同到期日',notificationToday:'本月',billingOverview:'💰 本月收款',billingDaysCount:'收款日数量',propertiesWithBilling:'已设置收款日的房源',contractExpiryOverview:'📑 本月合同到期',billingRulesOverview:'🧩 房源收款规则',noBillingThisMonth:'本月没有收款项目',noExpiryThisMonth:'本月没有合同到期',billingRuleMissing:'未设置收款日',monthlyBilling:'每月',createFolder:'创建文件夹',editFolder:'编辑文件夹',save:'保存',billingDay:'每月收款日',documentsFolder:'文件',uploadPdf:'⬆ 上传 PDF',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',hasPdf:'已附加 PDF 文件',confirmDeletePdf:'删除 PDF 文件？',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',uploading:'上传中...',folderHasChildren:'一级文件夹仍有二级文件夹，无法删除',confirmDeleteFolder:'删除文件夹',docsRemainAll:'文档仍会保留在“全部”',deleteFailed:'删除失败',saveFailed:'保存失败',backToFolders:'全部文件夹',backToParent:'返回主文件夹',openFolder:'打开文件夹',unfiledFolders:'未分类文件夹',moveToParent:'主文件夹',parentDeletedMsg:'主文件夹已删除，子文件夹已移至“未分类文件夹”。',confirmDeleteParentMsg:'确定删除此主文件夹吗？子文件夹不会删除，而会移至“未分类文件夹”，其文档保持不变。',noParent:'— 未分类 —'});
 function t(key){ return (LANG[currentLang]||LANG.th)[key] || LANG.th[key] || key; }
 function tDoc(key,lang){ return (LANG[lang]||LANG.th)[key] || LANG.th[key] || key; }
 
@@ -1898,7 +1975,7 @@ function thaiBahtText(numStr){
 }
 
 /* ============================================================
-   AUDIT LOG — V5.9.4
+   AUDIT LOG — V5.9.5
    ============================================================ */
 async function writeAuditLog(action, entityType, entityId, summary, meta={}){
   try{
@@ -2221,10 +2298,11 @@ function renderFolderList(){
       const cnt=folderDocCounts[child.id]||0;
       const canEditChild=isAdmin || (currentUser?.role==='staff' && (child.parentId || Number(child.level||0)===2));
       const edit=canEditChild?`<button class="folder-tool" data-folder-edit="${child.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
-      const del=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${child.id}" data-parent="0" data-fname="${escAttr(child.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
+      const move=isAdmin?`<button class="folder-tool folder-move-btn" data-folder-move="${child.id}" title="${t('moveFolder')||'ย้ายโฟลเดอร์'}">↗</button>`:'';
+        const del=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${child.id}" data-parent="0" data-fname="${escAttr(child.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
       html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
         <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span>
-        <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${del}
+        <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${move}${del}
         <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
       </div>`;
     });
@@ -2236,12 +2314,13 @@ function renderFolderList(){
     parents.forEach(parent=>{
       const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice();
       const parentCount=children.length + (folderDocCounts[parent.id]||0);
-      const parentEdit=(isAdmin || currentUser?.role==='staff')?`<button class="folder-tool" data-folder-edit="${parent.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
+      const parentEdit=isAdmin?`<button class="folder-tool" data-folder-edit="${parent.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
+      const parentMove=isAdmin?`<button class="folder-tool folder-move-btn" data-folder-move="${parent.id}" title="${t('moveFolder')||'ย้ายโฟลเดอร์'}">↗</button>`:'';
       const parentDelete=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${parent.id}" data-parent="1" data-fname="${escAttr(parent.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
       const addChild=canCreateFolder?`<button class="folder-tool folder-add-child" data-parent-id="${parent.id}" title="${t('createFolder')||'สร้างโฟลเดอร์'}">＋</button>`:'';
       html+=`<div class="folder-item folder-level-1" data-parent-open="${parent.id}" style="justify-content:flex-start">
         <span class="folder-icon">📁</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">${escName(parent.name)}</span>
-        <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${parentCount})</span>${addChild}${parentEdit}${parentDelete}
+        <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${parentCount})</span>${addChild}${parentEdit}${parentMove}${parentDelete}
       </div>`;
     });
     const orphans=foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned));
@@ -2251,9 +2330,10 @@ function renderFolderList(){
         const cnt=folderDocCounts[child.id]||0;
         const canEditChild=isAdmin || (currentUser?.role==='staff' && (child.parentId || Number(child.level||0)===2));
       const edit=canEditChild?`<button class="folder-tool" data-folder-edit="${child.id}" title="${t('editFolder')||'แก้ไขโฟลเดอร์'}">⚙️</button>`:'';
+        const move=isAdmin?`<button class="folder-tool folder-move-btn" data-folder-move="${child.id}" title="${t('moveFolder')||'ย้ายโฟลเดอร์'}">↗</button>`:'';
         const del=isAdmin?`<button class="folder-tool folder-delete-btn" data-fid="${child.id}" data-parent="0" data-fname="${escAttr(child.name)}" title="${t('cardDel')||'ลบโฟลเดอร์'}">🗑</button>`:'';
         html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
-          <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${del}
+          <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}${move}${del}
           <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
         </div>`;
       });
@@ -2310,8 +2390,10 @@ function renderFolderList(){
       if(isDocumentsFolder(f)){
         const house=foldersCache.find(x=>x.id===f.parentId);
         currentParentViewId=house?.parentId||null; currentFolderId=f.id;
-      } else if(f?.parentId){ currentParentViewId=f.parentId; currentFolderId=f.id; }
-      else { currentParentViewId=null; currentFolderId=fid; }
+      } else if(f?.parentId){
+        const hasChildren=getChildFolders(f.id).some(x=>!x.orphaned);
+        currentParentViewId=hasChildren ? f.id : f.parentId; currentFolderId=f.id;
+      } else { currentParentViewId=null; currentFolderId=fid; }
     }
     renderFolderList(); loadDocList();
     const f=foldersCache.find(x=>x.id===currentFolderId);
@@ -2322,8 +2404,80 @@ function renderFolderList(){
   }));
   list.querySelectorAll('[data-folder-edit]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openFolderEdit(btn.dataset.folderEdit);}));
   list.querySelectorAll('.folder-add-child').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openNewChildFolder(btn.dataset.parentId);}));
+  list.querySelectorAll('.folder-move-btn').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();openFolderMove(btn.dataset.folderMove);}));
   updateLibraryActionButtons();
 }
+
+let _folderMoveId=null;
+let _folderMoveTarget=null;
+let _folderMovePath=[];
+function folderChildrenForMove(parentId){
+  return foldersCache.filter(f=>f.parentId===parentId && !f.isSystemFolder && !f.orphaned);
+}
+function folderMoveDescendantIds(id){
+  const out=[]; const walk=(pid)=>foldersCache.filter(f=>f.parentId===pid).forEach(ch=>{out.push(ch.id);walk(ch.id);}); walk(id); return out;
+}
+function folderMoveSubtreeIds(id){ return [id,...folderMoveDescendantIds(id)]; }
+function renderFolderMoveLevel(parentId=null){
+  const body=document.getElementById('folderMoveBody'), crumb=document.getElementById('folderMoveCrumb');
+  const moving=foldersCache.find(f=>f.id===_folderMoveId);
+  const current=parentId?foldersCache.find(f=>f.id===parentId):null;
+  _folderMovePath=parentId ? [...(function(){const a=[];let x=current;while(x){a.unshift(x);x=x.parentId?foldersCache.find(f=>f.id===x.parentId):null;}return a;})()] : [];
+  crumb.textContent=current ? ('📂 '+_folderMovePath.map(x=>x.name).join(' / ')) : '📂 '+(t('backToFolders')||'โฟลเดอร์หลัก');
+  const blocked=new Set([_folderMoveId,...folderMoveDescendantIds(_folderMoveId)]);
+  const items=foldersCache.filter(f=>(parentId?f.parentId===parentId:!f.parentId) && !f.isSystemFolder && !f.orphaned && !blocked.has(f.id));
+  let html='';
+  if(parentId){
+    html+=`<button type="button" class="folder-move-row" data-move-up="1" style="width:100%;text-align:left;border:0;background:var(--line-soft);padding:9px 10px;border-radius:6px;cursor:pointer;font-family:inherit;margin-bottom:6px">← ${escHtml(t('backToParent')||'กลับไป')} </button>`;
+  }
+  if(!parentId && moving?.parentId){
+    html+=`<button type="button" class="folder-move-row" data-move-root="1" style="width:100%;text-align:left;border:1px solid var(--line);background:#fff;padding:9px 10px;border-radius:6px;cursor:pointer;font-family:inherit;margin-bottom:6px">📂 ${escHtml(t('backToFolders')||'โฟลเดอร์หลัก')} — ${escHtml(t('move')||'ย้ายมาระดับหลัก')}</button>`;
+  }
+  items.forEach(f=>{
+    const kids=folderChildrenForMove(f.id).filter(x=>!blocked.has(x.id));
+    html+=`<div class="folder-move-row" style="display:flex;align-items:center;gap:7px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;margin:6px 0;background:#fff">
+      <button type="button" data-move-target="${escAttr(f.id)}" style="flex:1;text-align:left;border:0;background:none;cursor:pointer;font-family:inherit;font-size:12px">📁 ${escHtml(f.name)}</button>
+      ${kids.length?`<button type="button" data-move-enter="${escAttr(f.id)}" style="border:1px solid var(--line);background:#fff;border-radius:5px;padding:4px 8px;cursor:pointer;font-family:inherit">เข้า ›</button>`:''}
+    </div>`;
+  });
+  if(!items.length && !(parentId && moving?.parentId)) html+=`<div class="lib-empty" style="padding:18px 8px">${escHtml(t('noDocuments')||'ไม่มีโฟลเดอร์ย่อย')}</div>`;
+  body.innerHTML=html;
+  document.getElementById('folderMoveConfirm').disabled=!_folderMoveTarget;
+  body.querySelector('[data-move-up]')?.addEventListener('click',()=>renderFolderMoveLevel(current?.parentId||null));
+  body.querySelector('[data-move-root]')?.addEventListener('click',()=>{_folderMoveTarget=null;renderFolderMoveLevel(null);_folderMoveTarget='__root__';document.getElementById('folderMoveConfirm').disabled=false;});
+  body.querySelectorAll('[data-move-enter]').forEach(b=>b.addEventListener('click',()=>{_folderMoveTarget=null;renderFolderMoveLevel(b.dataset.moveEnter);}));
+  body.querySelectorAll('[data-move-target]').forEach(b=>b.addEventListener('click',()=>{_folderMoveTarget=b.dataset.moveTarget;document.getElementById('folderMoveConfirm').disabled=false;body.querySelectorAll('[data-move-target]').forEach(x=>x.style.background='none');b.style.background='var(--line-soft)';}));
+}
+function openFolderMove(fid){
+  if(currentUser?.role!=='admin') return;
+  const f=foldersCache.find(x=>x.id===fid); if(!f || isDocumentsFolder(f)) return;
+  _folderMoveId=fid; _folderMoveTarget=null;
+  document.getElementById('folderMoveTitle').textContent=(t('moveFolder')||'ย้ายโฟลเดอร์')+' — '+(f.name||'');
+  document.getElementById('folderMoveModal').classList.remove('hidden');
+  renderFolderMoveLevel(null);
+}
+async function confirmFolderMove(){
+  if(currentUser?.role!=='admin'||!_folderMoveId||!_folderMoveTarget) return;
+  const f=foldersCache.find(x=>x.id===_folderMoveId); if(!f)return;
+  const targetParent=_folderMoveTarget==='__root__'?null:_folderMoveTarget;
+  if(targetParent===f.id || (targetParent && folderMoveDescendantIds(f.id).includes(targetParent))){alert('ไม่สามารถย้ายโฟลเดอร์เข้าในตัวเองหรือโฟลเดอร์ลูกของตัวเองได้');return;}
+  const btn=document.getElementById('folderMoveConfirm'); btn.disabled=true;
+  try{
+    const newRootLevel=targetParent?(Number(foldersCache.find(x=>x.id===targetParent)?.level||1)+1):1;
+    const oldParent=f.parentId||null;
+    const subtree=folderMoveSubtreeIds(f.id);
+    const oldDepth=(id)=>{let d=0,x=foldersCache.find(z=>z.id===id);while(x?.parentId){d++;x=foldersCache.find(z=>z.id===x.parentId);if(d>100)break;}return d;};
+    const rootDepth=oldDepth(f.id);
+    const updates=subtree.map(id=>{const node=foldersCache.find(x=>x.id===id);return {id,parentId:id===f.id?targetParent:node?.parentId||null,level:newRootLevel+Math.max(0,oldDepth(id)-rootDepth)};}).filter(x=>x.id);
+    for(let i=0;i<updates.length;i+=450){const batch=db.batch();updates.slice(i,i+450).forEach(x=>batch.update(db.collection('folders').doc(x.id),{parentId:x.parentId,level:x.level,orphaned:false}));await batch.commit();}
+    await writeAuditLog('folder_move','folder',f.id,`ย้ายโฟลเดอร์ "${f.name||''}"`,{from:oldParent,to:targetParent,subtreeCount:subtree.length});
+    document.getElementById('folderMoveModal').classList.add('hidden');
+    _folderMoveId=null;_folderMoveTarget=null; await loadFolders();
+  }catch(e){alert((t('movingFailed')||'ย้ายโฟลเดอร์ไม่สำเร็จ')+': '+e.message);}finally{btn.disabled=false;}
+}
+document.getElementById('folderMoveClose')?.addEventListener('click',()=>document.getElementById('folderMoveModal').classList.add('hidden'));
+document.getElementById('folderMoveCancel')?.addEventListener('click',()=>document.getElementById('folderMoveModal').classList.add('hidden'));
+document.getElementById('folderMoveConfirm')?.addEventListener('click',confirmFolderMove);
 
 function populateFolderSelect(){
   const selects=[document.getElementById('saveFolderSelect'),document.getElementById('docMoveSelect'),document.getElementById('dpMoveSelect')].filter(Boolean);
@@ -2401,6 +2555,8 @@ function openNewParentFolder(){
   document.getElementById('folderContractStart').value='';
   document.getElementById('folderContractEnd').value='';
   document.getElementById('folderBillingDay').value='';
+  document.getElementById('folderBillingAmount').value='';
+  document.getElementById('folderPaymentDueDays').value='0';
   document.getElementById('folderBillingReminder').value='3';
   document.getElementById('folderModal').classList.remove('hidden');
 }
@@ -2414,6 +2570,8 @@ function openNewChildFolder(parentId){
   document.getElementById('folderContractStart').value='';
   document.getElementById('folderContractEnd').value='';
   document.getElementById('folderBillingDay').value='';
+  document.getElementById('folderBillingAmount').value='';
+  document.getElementById('folderPaymentDueDays').value='0';
   document.getElementById('folderBillingReminder').value='3';
   document.getElementById('folderModal').classList.remove('hidden');
 }
@@ -2432,7 +2590,9 @@ function openFolderEdit(fid){
   document.getElementById('folderContractStart').value=f.contractStart||'';
   document.getElementById('folderContractEnd').value=f.contractEnd||'';
   document.getElementById('folderBillingDay').value=f.billingDay||'';
-  document.getElementById('folderBillingReminder').value=(f.billingReminderDays===0?0:(f.billingReminderDays||3));
+  document.getElementById('folderBillingAmount').value=(f.billingAmount??f.billingRule?.amount??'');
+  document.getElementById('folderPaymentDueDays').value=(f.paymentDueDays??f.billingRule?.dueDays??0);
+  document.getElementById('folderBillingReminder').value=(f.billingReminderDays===0?0:(f.billingReminderDays??f.billingRule?.reminderDays??3));
   document.getElementById('folderModal').classList.remove('hidden');
 }
 
@@ -2470,7 +2630,7 @@ async function getFolderFiles(folderId){
   const house=f && isDocumentsFolder(f) ? foldersCache.find(x=>x.id===f.parentId) : null;
   const source=house || f;
   const files=Array.isArray(source?.contractFiles)?source.contractFiles:[];
-  // Keep the stored order. V5.9.4 intentionally has no file sorting UI/logic.
+  // Keep the stored order. V5.9.5 intentionally has no file sorting UI/logic.
   return files.map(x=>({...x}));
 }
 async function loadFolderFiles(){
@@ -2549,7 +2709,7 @@ async function uploadFolderFiles(fileList){
       status.textContent=`กำลังอัปโหลด ${file.name} (${done+1}/${files.length}) ...`;
       const safe=(file.name||'file.pdf').replace(/[^a-zA-Z0-9._-]+/g,'_');
       // Reuse the existing contracts/ Storage namespace so no new Firebase
-      // Storage rule is required for this V5.9.4 upload flow.
+      // Storage rule is required for this V5.9.5 upload flow.
       const path=`contracts/${houseFolder.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
       const snap=await storage.ref(path).put(file,{contentType:'application/pdf'});
       const url=await snap.ref.getDownloadURL();
@@ -2644,8 +2804,6 @@ document.getElementById('libUploadBtn')?.addEventListener('click',()=>{
 document.getElementById('folderFileInput')?.addEventListener('change',e=>{uploadFolderFiles(e.target.files);e.target.value='';});
 
 
-document.getElementById('addFolderBtn').addEventListener('click',openNewParentFolder);
-document.getElementById('addFolderMobileBtn')?.addEventListener('click',openNewParentFolder);
 document.getElementById('folderModalCancel').addEventListener('click',()=>document.getElementById('folderModal').classList.add('hidden'));
 document.getElementById('folderTypeInput').addEventListener('change',updateFolderContractVisibility);
 
@@ -2672,18 +2830,22 @@ document.getElementById('folderModalConfirm').addEventListener('click',async()=>
       if(!parentId && !isOrphaned) throw new Error('กรุณาเลือกโฟลเดอร์ชั้นที่ 1');
       const type=document.getElementById('folderTypeInput').value;
       const desc=document.getElementById('folderDescInput').value.trim();
-      const payload={name,parentId:parentId||null,level:2,orphaned:isOrphaned,type,desc:desc||''};
+      const payload={name,parentId:parentId||null,level:2,orphaned:isOrphaned,type,desc:desc||'',propertyId:existing?.propertyId||_editingFolderId||null};
       if(type==='rent'){
         payload.contractStart=document.getElementById('folderContractStart').value||'';
         payload.contractEnd=document.getElementById('folderContractEnd').value||'';
         payload.billingDay=document.getElementById('folderBillingDay').value ? Number(document.getElementById('folderBillingDay').value) : null;
         payload.billingReminderDays=Math.max(0,Math.min(30,Number(document.getElementById('folderBillingReminder').value||3)));
+        payload.billingAmount=document.getElementById('folderBillingAmount').value!=='' ? Number(document.getElementById('folderBillingAmount').value) : null;
+        payload.paymentDueDays=Math.max(0,Math.min(90,Number(document.getElementById('folderPaymentDueDays').value||0)));
+        payload.billingRule={frequency:'monthly',billingDay:payload.billingDay,amount:payload.billingAmount,dueDays:payload.paymentDueDays,reminderDays:payload.billingReminderDays};
         if(_editingFolderId){
           await db.collection('folders').doc(_editingFolderId).update(payload);
         }
         else {
           const childRef = await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
           await createDocumentsSystemFolder(childRef.id);
+          await db.collection('folders').doc(childRef.id).update({propertyId:childRef.id});
         }
       }else{
         if(_editingFolderId){
@@ -2693,6 +2855,7 @@ document.getElementById('folderModalConfirm').addEventListener('click',async()=>
         }else {
           const childRef = await db.collection('folders').add({...payload,createdBy:currentUser.uid,createdByName:currentUser.displayName,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
           await createDocumentsSystemFolder(childRef.id);
+          await db.collection('folders').doc(childRef.id).update({propertyId:childRef.id});
         }
       }
     }
@@ -3813,7 +3976,7 @@ document.getElementById('generateBtn').addEventListener('click', async ()=>{
     if(pvBtn){pvBtn.disabled=false; pvBtn.textContent=pvBtnOrig||'📄 ส่งออก PDF';}
   }
 });
-// JPG export removed from UI (v5.9.4) — function kept for potential future use
+// JPG export removed from UI (v5.9.5) — function kept for potential future use
 async function exportJpg(){
   try {
     const canvas=await captureDoc();
@@ -3848,6 +4011,7 @@ function switchTab(tab, pushState=true){
   if(tab==='admin' && currentUser?.role==='admin' && currentUser?.isOwner) loadUsers();
   if(tab==='editor') setTimeout(scalePreview,100);
   if(tab==='stats') loadStats();
+  if(tab==='notifications') loadRentalCalendar();
   if(pushState) try{ history.pushState({tab},'',(location.pathname||'/')+'#'+tab); }catch(e){}
 }
 window.addEventListener('popstate', e=>{ if(e.state?.tab) switchTab(e.state.tab, false); });
@@ -3938,6 +4102,28 @@ function rentalNotificationItems(){
 function rentalNotificationReadMap(){
   return Object.assign({},currentUser?.notificationReads||{},getLocalReadNotifications());
 }
+let _rentalCalendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+function monthKey(y,m){return `${y}-${String(m+1).padStart(2,'0')}`;}
+function monthLabel(y,m){const d=new Date(y,m,1);return currentLang==='th'?`${['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][m]} ${y+543}`:currentLang==='cn'?`${y}年${m+1}月`:`${['January','February','March','April','May','June','July','August','September','October','November','December'][m]} ${y}`;}
+function billingDateForMonth(f,y,m){const day=Number(f?.billingDay||0);if(!day)return null;const last=new Date(y,m+1,0).getDate();return `${y}-${String(m+1).padStart(2,'0')}-${String(Math.min(day,last)).padStart(2,'0')}`;}
+function openRentalFolderById(fid){currentParentViewId=null;currentFolderId=fid;renderFolderList();loadDocList();const f=foldersCache.find(x=>x.id===fid);const title=f?.name||'';document.getElementById('libFolderTitle').textContent=title;document.getElementById('rentalNotifModal')?.classList.add('hidden');switchTab('library');}
+function loadRentalCalendar(){
+  const y=_rentalCalendarMonth.getFullYear(),m=_rentalCalendarMonth.getMonth();
+  const label=document.getElementById('rentalMonthLabel'); if(label)label.textContent=monthLabel(y,m);
+  const rents=(foldersCache||[]).filter(f=>String(f.type||'')==='rent' && !f.isSystemFolder);
+  const billing=rents.map(f=>({f,d:billingDateForMonth(f,y,m)})).filter(x=>x.d);
+  const expiry=rents.filter(f=>{if(!f.contractEnd)return false;const d=new Date(f.contractEnd+'T00:00:00');return d.getFullYear()===y&&d.getMonth()===m;});
+  const summary=document.getElementById('rentalSummaryGrid');
+  if(summary)summary.innerHTML=[[''+billing.length,'billingOverview'],[''+new Set(billing.map(x=>x.d)).size,'billingDaysCount'],[''+expiry.length,'contractExpiryOverview'],[''+rents.filter(f=>f.billingDay).length,'propertiesWithBilling']].map((x,i)=>`<div class="rental-summary-card"><div class="n">${x[0]}</div><div class="l">${t(x[1])}</div></div>`).join('');
+  const groups={};billing.forEach(x=>(groups[x.d]??=[]).push(x.f));
+  const bl=document.getElementById('rentalBillingMonthList'); if(bl){const keys=Object.keys(groups).sort();bl.innerHTML=keys.length?keys.map(k=>{const day=Number(k.slice(-2));return `<div class="rental-day-group"><div class="rental-day-title">📅 ${day} ${currentLang==='th'?['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'][m]:currentLang==='cn'?'月':' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]}</div>${groups[k].map(f=>`<div class="rental-house-row"><span>🏠 <b>${escHtml(f.name)}</b> <span style="color:var(--ink-soft)">· ${t('monthlyBilling')}</span></span><button type="button" data-rental-open="${escAttr(f.id)}">เปิด</button></div>`).join('')}</div>`}).join(''):`<div class="lib-empty" style="padding:20px">${t('noBillingThisMonth')}</div>`;bl.querySelectorAll('[data-rental-open]').forEach(b=>b.addEventListener('click',()=>openRentalFolderById(b.dataset.rentalOpen)));}
+  const el=document.getElementById('rentalExpiryMonthList');if(el)el.innerHTML=expiry.length?expiry.slice().sort((a,b)=>String(a.contractEnd).localeCompare(String(b.contractEnd))).map(f=>{const d=new Date(f.contractEnd+'T00:00:00').getDate();return `<div class="rental-house-row"><span>📑 <b>${escHtml(f.name)}</b><br><small style="color:var(--ink-soft)">${formatDate(f.contractEnd)} · ${t('contractEnd')}</small></span><button type="button" data-rental-open="${escAttr(f.id)}">เปิด</button></div>`}).join(''):`<div class="lib-empty" style="padding:20px">${t('noExpiryThisMonth')}</div>`;el.querySelectorAll('[data-rental-open]').forEach(b=>b.addEventListener('click',()=>openRentalFolderById(b.dataset.rentalOpen)));
+  const rules=document.getElementById('rentalBillingRulesList');if(rules)rules.innerHTML=rents.length?`<div class="rental-rule-row rental-rule-head"><div>บ้าน</div><div>วันวางบิล</div><div>ค่าเช่า</div><div class="hide-mobile">ครบกำหนด</div></div>`+rents.map(f=>`<div class="rental-rule-row"><div><b>${escHtml(f.name)}</b></div><div>${f.billingDay?f.billingDay:'—'}</div><div>${f.billingAmount!=null?fmt(Number(f.billingAmount))+' ฿':'—'}</div><div class="hide-mobile">${f.paymentDueDays?f.paymentDueDays+' วัน':'วันวางบิล'}</div></div>`).join(''):`<div class="lib-empty" style="padding:20px">—</div>`;
+}
+document.getElementById('rentalMonthPrev')?.addEventListener('click',()=>{_rentalCalendarMonth=new Date(_rentalCalendarMonth.getFullYear(),_rentalCalendarMonth.getMonth()-1,1);loadRentalCalendar();});
+document.getElementById('rentalMonthNext')?.addEventListener('click',()=>{_rentalCalendarMonth=new Date(_rentalCalendarMonth.getFullYear(),_rentalCalendarMonth.getMonth()+1,1);loadRentalCalendar();});
+document.getElementById('rentalMonthToday')?.addEventListener('click',()=>{const d=new Date();_rentalCalendarMonth=new Date(d.getFullYear(),d.getMonth(),1);loadRentalCalendar();});
+
 function refreshRentalNotificationBadge(){
   const items=rentalNotificationItems(), reads=rentalNotificationReadMap();
   const unread=items.filter(n=>!reads[rentalNotificationKey(n)]);
@@ -3983,6 +4169,7 @@ applyLang = function(){
   const adminTabLabel = document.getElementById('adminTabLabel');
   if(adminTabLabel) adminTabLabel.textContent = t('tabAdmin');
   // Re-render stats if visible (stats use t() directly in render)
+  if(document.getElementById('notificationsView')?.classList.contains('active') && typeof loadRentalCalendar==='function') loadRentalCalendar();
   if(document.getElementById('statsView')?.classList.contains('active')){
     loadStats();
   }
@@ -4230,7 +4417,7 @@ function openMobileDrawer(){
   if(rb){ const db2=document.getElementById('drawerRoleBadge'); db2.textContent=rb.textContent; db2.className=rb.className; }
   // Admin: show notif row
   const notifRow=document.getElementById('drawerNotifRow');
-  if(notifRow) notifRow.style.display=currentUser?.role==='admin'?'flex':'none';
+  if(notifRow) notifRow.style.display='flex';
   // Sync notif dot
   const dot=document.getElementById('notifDot');
   const drawerDot=document.getElementById('drawerNotifDot');
@@ -4243,7 +4430,7 @@ function closeMobileDrawer(){
 document.body.addEventListener('click',e=>{
   if(e.target.closest('#hdrHamburger')) openMobileDrawer();
   if(e.target.closest('#mobileDrawerClose')||e.target.closest('#mobileDrawerOverlay')) closeMobileDrawer();
-  if(e.target.closest('#drawerNotifBtn')){ closeMobileDrawer(); document.getElementById('notifBtn')?.click(); }
+  if(e.target.closest('#drawerNotifBtn')){ closeMobileDrawer(); switchTab('notifications'); }
   if(e.target.closest('#drawerLogoutBtn')){
     closeMobileDrawer();
     if(confirm(t('logoutConfirm')||'ต้องการออกจากระบบจริงหรือไม่?')) document.getElementById('logoutBtn')?.click();
@@ -4446,6 +4633,9 @@ async function moveFolderDocumentsToOther(folderId){
     </button>
     <button class="bottom-nav-btn" data-bn-tab="stats">
       <span class="bn-icon">📊</span><span data-i18n="bnStats">สถิติ</span>
+    </button>
+    <button class="bottom-nav-btn" data-bn-tab="notifications">
+      <span class="bn-icon">🔔</span><span data-i18n="tabNotifications">แจ้งเตือน</span>
     </button>
     <button class="bottom-nav-btn" id="bnAdminBtn" data-bn-tab="admin" style="display:none">
       <span class="bn-icon">⚙️</span><span data-i18n="bnAdmin">จัดการ</span>
