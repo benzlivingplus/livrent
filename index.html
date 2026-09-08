@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.9.7">
+<meta name="livrent-version" content="5.9.8">
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -565,7 +565,7 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 
 
 .lib-title-wrap{display:flex;align-items:center;min-width:0;}
-/* ===== V5.9.7 folder info / PDF attachments ===== */
+/* ===== V5.9.8 folder info / PDF attachments ===== */
 .lib-top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .folder-title-clickable{cursor:pointer}
 .audit-list{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow:auto}
@@ -708,7 +708,7 @@ table.items tbody tr:nth-child(even){background:var(--line-soft);}
 .bottom-nav-btn .bn-badge.visible { display:block; }
 
 
-/* ===== V5.9.7 mobile refinements ===== */
+/* ===== V5.9.8 mobile refinements ===== */
 .mobile-preview-fab{
   display:none;
 }
@@ -1027,10 +1027,16 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 .rental-month-nav button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer;font-family:inherit;}
 .rental-month-nav button:hover{border-color:var(--maroon);color:var(--maroon);}
 .rental-month-label{text-align:center;font-size:20px;font-weight:800;color:var(--maroon);padding:8px 0 14px;}
-.rental-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.rental-summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px;}
 .rental-summary-card{background:#fff;border:1px solid var(--line);border-radius:7px;padding:12px;}
 .rental-summary-card .n{font-size:22px;font-weight:800;color:var(--maroon);}
 .rental-summary-card .l{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.rental-summary-card.rent-total{border-left:4px solid #55c947;}
+.rental-summary-card.rent-collected{border-left:4px solid #2196f3;}
+.rental-summary-card.rent-collected .n{color:#1976d2;}
+.rental-progress{height:7px;background:#e9ecef;border-radius:99px;overflow:hidden;margin-top:7px;}
+.rental-progress > span{display:block;height:100%;width:0;background:#2196f3;border-radius:99px;transition:width .2s ease;}
+.rental-percent{font-size:11px;font-weight:800;color:#1976d2;margin-top:4px;}
 .rental-calendar-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .rental-calendar-panel{background:#fff;border:1px solid var(--line);border-radius:7px;padding:14px;}
 .rental-calendar-panel h3{margin:0 0 10px;font-size:14px;color:var(--maroon);}
@@ -1040,10 +1046,10 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 .rental-house-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;background:var(--line-soft);border-radius:6px;margin:4px 0;font-size:12px;}
 .rental-house-row button{border:1px solid var(--line);background:#fff;border-radius:5px;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:11px;}
 .rental-house-row button:hover{color:var(--maroon);border-color:var(--maroon);}
-.rental-rule-row{display:grid;grid-template-columns:1.4fr .8fr .8fr .8fr;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-soft);font-size:11px;}
+.rental-rule-row{display:grid;grid-template-columns:1.7fr .9fr .9fr .9fr .9fr;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-soft);font-size:11px;}
 .rental-rule-row:first-child{border-top:0;}
 .rental-rule-head{font-weight:700;color:var(--ink-soft);}
-@media(max-width:700px){.rental-calendar-page{padding:12px}.rental-calendar-head{align-items:flex-start;flex-direction:column}.rental-summary-grid{grid-template-columns:1fr 1fr}.rental-calendar-grid{grid-template-columns:1fr}.rental-rule-row{grid-template-columns:1.5fr .8fr .8fr;}.rental-rule-row .hide-mobile{display:none;}}
+@media(max-width:700px){.rental-calendar-page{padding:12px}.rental-calendar-head{align-items:flex-start;flex-direction:column}.rental-summary-grid{grid-template-columns:1fr 1fr}.rental-calendar-grid{grid-template-columns:1fr}.rental-rule-row{grid-template-columns:1.6fr .8fr .8fr .8fr;}.rental-rule-row .hide-mobile{display:none;}}
 </style>
 </head>
 <body>
@@ -1366,18 +1372,12 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
       </div>
       <div class="rental-month-label" id="rentalMonthLabel"></div>
       <div class="rental-summary-grid" id="rentalSummaryGrid"></div>
-      <div class="rental-calendar-grid">
-        <div class="rental-calendar-panel">
-          <h3 data-i18n="billingOverview">💰 วางบิลในเดือนนี้</h3>
-          <div id="rentalBillingMonthList"></div>
-        </div>
-        <div class="rental-calendar-panel">
-          <h3 data-i18n="contractExpiryOverview">📑 วันหมดสัญญาในเดือนนี้</h3>
-          <div id="rentalExpiryMonthList"></div>
-        </div>
+      <div class="rental-calendar-panel" style="margin-top:14px">
+        <h3 data-i18n="contractExpiryOverview">📑 วันหมดสัญญาในเดือนนี้</h3>
+        <div id="rentalExpiryMonthList"></div>
       </div>
       <div class="rental-calendar-panel" style="margin-top:14px">
-        <h3 data-i18n="billingRulesOverview">🧩 กติกาการวางบิลของบ้าน</h3>
+        <h3 data-i18n="billingRulesOverview">🧩 ตารางการวางบิล</h3>
         <div id="rentalBillingRulesList"></div>
       </div>
     </div>
@@ -1480,7 +1480,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </div>
 </div>
 
-<!-- ===== FOLDER MOVE MODAL v5.9.7 ===== -->
+<!-- ===== FOLDER MOVE MODAL v5.9.8 ===== -->
 <div class="modal-overlay hidden" id="folderMoveModal">
   <div class="modal" style="width:430px;max-width:94vw;max-height:88vh;overflow-y:auto">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -1496,7 +1496,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </div>
 </div>
 
-<!-- ===== FOLDER ACTION MENU v5.9.7 ===== -->
+<!-- ===== FOLDER ACTION MENU v5.9.8 ===== -->
 <div class="modal-overlay hidden" id="folderActionModal">
   <div class="modal" style="width:360px;max-width:92vw">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -1508,11 +1508,11 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </div>
 </div>
 
-<!-- ===== MOBILE ITEM EDIT MODAL v5.9.7 ===== -->
+<!-- ===== MOBILE ITEM EDIT MODAL v5.9.8 ===== -->
 <div class="modal-overlay hidden" id="mobileItemEditModal">
   <div class="modal mobile-item-modal">
     <h3 id="mobileItemEditTitle">รายการ</h3>
-    <label data-i18n="itemDetails">รายละเอียดรายการ</label>
+    <label>รายละเอียดรายการ</label>
     <textarea id="mobileItemDescInput" rows="7" style="min-height:160px"></textarea>
     <label>จำนวนเงิน</label>
     <input type="number" id="mobileItemAmountInput" step="0.01" placeholder="0.00">
@@ -1523,7 +1523,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
   </div>
 </div>
 
-<!-- ===== FOLDER RENAME MODAL v5.9.7 ===== -->
+<!-- ===== FOLDER RENAME MODAL v5.9.8 ===== -->
 <div class="modal-overlay hidden" id="folderRenameModal">
   <div class="modal" style="width:390px;max-width:92vw">
     <h3 id="folderRenameTitle">เปลี่ยนชื่อโฟลเดอร์</h3>
@@ -1573,7 +1573,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
       <input type="number" id="folderPaymentDueDays" min="0" max="90" value="0" style="margin-bottom:6px">
       <label>แจ้งเตือนล่วงหน้า (วัน)</label>
       <input type="number" id="folderBillingReminder" min="0" max="30" value="3" style="margin-bottom:6px">
-      <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">ข้อมูลนี้ใช้เป็นฐานสำหรับระบบวางบิลอัตโนมัติในอนาคต แต่ V5.9.7 ยังไม่สร้างใบแจ้งหนี้ให้อัตโนมัติ</div>
+      <div style="font-size:10.5px;color:var(--ink-soft);margin:-2px 0 7px">ข้อมูลนี้ใช้เป็นฐานสำหรับระบบวางบิลอัตโนมัติในอนาคต แต่ V5.9.8 ยังไม่สร้างใบแจ้งหนี้ให้อัตโนมัติ</div>
       
     </div>
     <div class="modal-actions">
@@ -1829,7 +1829,7 @@ const LANG = {
   }
 };
 
-/* ===== SYSTEM-WIDE UI TRANSLATIONS (v5.9.7) ===== */
+/* ===== SYSTEM-WIDE UI TRANSLATIONS (v5.9.8) ===== */
 Object.assign(LANG.th,{
   idcard:'เลขที่บัตรประชาชน', taxid:'เลขที่ผู้เสียภาษี', passport:'เลขที่พาสปอร์ต',
   companyreg:'เลขที่จดทะเบียนบริษัท', companytax:'เลขที่ผู้เสียภาษีบริษัท',
@@ -1892,12 +1892,12 @@ function applyExtraLang(){
   const req=document.getElementById('deleteRequestsList'); if(req)req.querySelectorAll('.req-sub').forEach(e=>e.innerHTML=e.innerHTML.replace(/ขอโดย:/g,sysT('requestedBy')+':'));
 }
 
-Object.assign(LANG.th,{docNumberPlaceholder:'กรอกเอง หรือให้รันอัตโนมัติ',propertyAddressPlaceholder:'เช่น 123/45 หมู่บ้านสุขสันต์ ซ.3',bankPlaceholder:'เช่น ธนาคารกสิกรไทย',sigNamePlaceholder:'ชื่อ-นามสกุล',fileNamePlaceholder:'ชื่อไฟล์ (ว่าง = อัตโนมัติ)',namePlaceholder:'ชื่อ-นามสกุล',usernamePlaceholder:'เช่น daraporn',passwordPlaceholder:'อย่างน้อย 6 ตัว',folderNamePlaceholder:'เช่น หมู่บ้านสุขสันต์',exportJpg:'JPG',exportPdf:'PDF',clearDate:'Clear date',itemDetails:'Item details',done:'Done',clearDate:'ลบวันที่',itemDetails:'รายละเอียดรายการ',done:'เสร็จสิ้น'});
-Object.assign(LANG.en,{docNumberPlaceholder:'Enter manually or auto-generate',propertyAddressPlaceholder:'e.g. 123/45 Suk San Village Soi 3',bankPlaceholder:'e.g. Kasikornbank',sigNamePlaceholder:'Full name',fileNamePlaceholder:'File name (blank = automatic)',namePlaceholder:'Full name',usernamePlaceholder:'e.g. daraporn',passwordPlaceholder:'At least 6 characters',folderNamePlaceholder:'e.g. Suk San Village',exportJpg:'JPG',exportPdf:'PDF',clearDate:'ลบวันที่',itemDetails:'รายละเอียดรายการ',done:'เสร็จสิ้น'});
-Object.assign(LANG.cn,{docNumberPlaceholder:'手动输入或自动生成',propertyAddressPlaceholder:'例如 123/45 Suk San Village Soi 3',bankPlaceholder:'例如 Kasikornbank',sigNamePlaceholder:'姓名',fileNamePlaceholder:'文件名（留空=自动）',namePlaceholder:'姓名',usernamePlaceholder:'例如 daraporn',passwordPlaceholder:'至少6位',folderNamePlaceholder:'例如 Suk San Village',exportJpg:'JPG',exportPdf:'PDF',clearDate:'ลบวันที่',itemDetails:'รายละเอียดรายการ',done:'เสร็จสิ้น'});
+Object.assign(LANG.th,{docNumberPlaceholder:'กรอกเอง หรือให้รันอัตโนมัติ',propertyAddressPlaceholder:'เช่น 123/45 หมู่บ้านสุขสันต์ ซ.3',bankPlaceholder:'เช่น ธนาคารกสิกรไทย',sigNamePlaceholder:'ชื่อ-นามสกุล',fileNamePlaceholder:'ชื่อไฟล์ (ว่าง = อัตโนมัติ)',namePlaceholder:'ชื่อ-นามสกุล',usernamePlaceholder:'เช่น daraporn',passwordPlaceholder:'อย่างน้อย 6 ตัว',folderNamePlaceholder:'เช่น หมู่บ้านสุขสันต์',exportJpg:'JPG',exportPdf:'PDF'});
+Object.assign(LANG.en,{docNumberPlaceholder:'Enter manually or auto-generate',propertyAddressPlaceholder:'e.g. 123/45 Suk San Village Soi 3',bankPlaceholder:'e.g. Kasikornbank',sigNamePlaceholder:'Full name',fileNamePlaceholder:'File name (blank = automatic)',namePlaceholder:'Full name',usernamePlaceholder:'e.g. daraporn',passwordPlaceholder:'At least 6 characters',folderNamePlaceholder:'e.g. Suk San Village',exportJpg:'JPG',exportPdf:'PDF'});
+Object.assign(LANG.cn,{docNumberPlaceholder:'手动输入或自动生成',propertyAddressPlaceholder:'例如 123/45 Suk San Village Soi 3',bankPlaceholder:'例如 Kasikornbank',sigNamePlaceholder:'姓名',fileNamePlaceholder:'文件名（留空=自动）',namePlaceholder:'姓名',usernamePlaceholder:'例如 daraporn',passwordPlaceholder:'至少6位',folderNamePlaceholder:'例如 Suk San Village',exportJpg:'JPG',exportPdf:'PDF'});
 
 
-Object.assign(LANG.th,{folderActions:'จัดการโฟลเดอร์',editFolderData:'แก้ไขข้อมูล',deleteFolder:'ลบโฟลเดอร์',tabNotifications:'🔔 แจ้งเตือน',notificationTitle:'🔔 แจ้งเตือนค่าเช่า / สัญญา',notificationSub:'ดูภาพรวมวันวางบิลและวันหมดสัญญา แยกตามเดือน',notificationToday:'เดือนนี้',billingOverview:'💰 รายการวางบิลในเดือนนี้',billingSentOverview:'วางบิลแล้ว',receiptSentOverview:'ส่งใบเสร็จ',billingDaysCount:'จำนวนวันวางบิล',propertiesWithBilling:'บ้านที่ตั้งวันวางบิล',contractExpiryOverview:'📑 วันหมดสัญญาในเดือนนี้',billingRulesOverview:'🧩 ตารางการวางบิล',noBillingThisMonth:'เดือนนี้ยังไม่มีรายการวางบิล',noExpiryThisMonth:'เดือนนี้ยังไม่มีบ้านหมดสัญญา',billingRuleMissing:'ยังไม่ได้ตั้งวันวางบิล',monthlyBilling:'รายเดือน',createFolder:'สร้างโฟลเดอร์',editFolder:'แก้ไขโฟลเดอร์',save:'บันทึก',billingDay:'วันวางบิลค่าเช่าทุกเดือน',documentsFolder:'เอกสาร',uploadPdf:'⬆ อัปโหลด PDF',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',hasPdf:'มีไฟล์ PDF แนบอยู่',confirmDeletePdf:'ลบไฟล์ PDF?',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',uploading:'กำลังอัปโหลด...',folderHasChildren:'ไม่สามารถลบโฟลเดอร์ชั้นที่ 1 ได้ เพราะยังมีโฟลเดอร์ชั้นที่ 2 อยู่',confirmDeleteFolder:'ลบโฟลเดอร์',docsRemainAll:'เอกสารจะยังคงอยู่ใน "ทั้งหมด"',deleteFailed:'ลบไม่สำเร็จ',saveFailed:'บันทึกไม่สำเร็จ',backToFolders:'โฟลเดอร์ทั้งหมด',backToParent:'กลับไปโฟลเดอร์หลัก',openFolder:'เปิดโฟลเดอร์',unfiledFolders:'โฟลเดอร์ที่ยังไม่ได้จัดหมวด',moveToParent:'โฟลเดอร์หลัก',parentDeletedMsg:'โฟลเดอร์หลักถูกลบแล้ว โฟลเดอร์ย่อยถูกย้ายมาไว้ใน "โฟลเดอร์ที่ยังไม่ได้จัดหมวด"',confirmDeleteParentMsg:'ลบโฟลเดอร์หลักนี้ใช่ไหม? โฟลเดอร์ย่อยจะไม่ถูกลบ แต่จะถูกย้ายไป "โฟลเดอร์ที่ยังไม่ได้จัดหมวด" และเอกสารจะยังอยู่เหมือนเดิม',noParent:'— ยังไม่ได้จัดหมวด —'});
+Object.assign(LANG.th,{folderActions:'จัดการโฟลเดอร์',editFolderData:'แก้ไขข้อมูล',deleteFolder:'ลบโฟลเดอร์',tabNotifications:'🔔 แจ้งเตือน',notificationTitle:'🔔 แจ้งเตือนค่าเช่า / สัญญา',notificationSub:'ดูภาพรวมวันวางบิลและวันหมดสัญญา แยกตามเดือน',notificationToday:'เดือนนี้',billingOverview:'💰 ค่าเช่าทั้งหมด',billingSentOverview:'วางบิลแล้ว',receiptSentOverview:'ส่งใบเสร็จ',billingDaysCount:'จำนวนวันวางบิล',propertiesWithBilling:'บ้านที่ตั้งวันวางบิล',contractExpiryOverview:'📑 วันหมดสัญญาในเดือนนี้',billingRulesOverview:'🧩 ตารางการวางบิล',noBillingThisMonth:'เดือนนี้ยังไม่มีรายการวางบิล',noExpiryThisMonth:'เดือนนี้ยังไม่มีบ้านหมดสัญญา',billingRuleMissing:'ยังไม่ได้ตั้งวันวางบิล',monthlyBilling:'รายเดือน',createFolder:'สร้างโฟลเดอร์',editFolder:'แก้ไขโฟลเดอร์',save:'บันทึก',billingDay:'วันวางบิลค่าเช่าทุกเดือน',documentsFolder:'เอกสาร',uploadPdf:'⬆ อัปโหลด PDF',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',hasPdf:'มีไฟล์ PDF แนบอยู่',confirmDeletePdf:'ลบไฟล์ PDF?',pdfOnly:'กรุณาเลือกไฟล์ PDF เท่านั้น',pdfTooLarge:'ไฟล์ PDF ใหญ่เกิน 25MB กรุณาเลือกไฟล์ที่เล็กกว่า',uploading:'กำลังอัปโหลด...',folderHasChildren:'ไม่สามารถลบโฟลเดอร์ชั้นที่ 1 ได้ เพราะยังมีโฟลเดอร์ชั้นที่ 2 อยู่',confirmDeleteFolder:'ลบโฟลเดอร์',docsRemainAll:'เอกสารจะยังคงอยู่ใน "ทั้งหมด"',deleteFailed:'ลบไม่สำเร็จ',saveFailed:'บันทึกไม่สำเร็จ',backToFolders:'โฟลเดอร์ทั้งหมด',backToParent:'กลับไปโฟลเดอร์หลัก',openFolder:'เปิดโฟลเดอร์',unfiledFolders:'โฟลเดอร์ที่ยังไม่ได้จัดหมวด',moveToParent:'โฟลเดอร์หลัก',parentDeletedMsg:'โฟลเดอร์หลักถูกลบแล้ว โฟลเดอร์ย่อยถูกย้ายมาไว้ใน "โฟลเดอร์ที่ยังไม่ได้จัดหมวด"',confirmDeleteParentMsg:'ลบโฟลเดอร์หลักนี้ใช่ไหม? โฟลเดอร์ย่อยจะไม่ถูกลบ แต่จะถูกย้ายไป "โฟลเดอร์ที่ยังไม่ได้จัดหมวด" และเอกสารจะยังอยู่เหมือนเดิม',noParent:'— ยังไม่ได้จัดหมวด —'});
 Object.assign(LANG.en,{folderActions:'Folder actions',editFolderData:'Edit information',deleteFolder:'Delete folder',tabNotifications:'🔔 Notifications',notificationTitle:'🔔 Rent / Contract Notifications',notificationSub:'Monthly overview of billing dates and contract expiries',notificationToday:'This month',billingOverview:'💰 Billing items this month',billingSentOverview:'Billed',receiptSentOverview:'Receipts sent',billingDaysCount:'Billing days',propertiesWithBilling:'Properties with billing rules',contractExpiryOverview:'📑 Contract expiry this month',billingRulesOverview:'🧩 Billing schedule',noBillingThisMonth:'No billing items this month',noExpiryThisMonth:'No contracts expire this month',billingRuleMissing:'Billing day not set',monthlyBilling:'Monthly',createFolder:'Create Folder',editFolder:'Edit Folder',save:'Save',billingDay:'Monthly billing day',documentsFolder:'Documents',uploadPdf:'⬆ Upload PDF',pdfOnly:'Please select PDF files only',pdfTooLarge:'PDF file is larger than 25MB',hasPdf:'PDF file attached',confirmDeletePdf:'Delete PDF file?',pdfOnly:'Please select a PDF file only',pdfTooLarge:'PDF file is larger than 25MB',uploading:'Uploading...',folderHasChildren:'Cannot delete a level-1 folder while it still has level-2 folders',confirmDeleteFolder:'Delete folder',docsRemainAll:'Documents will remain in "All"',deleteFailed:'Delete failed',saveFailed:'Save failed',backToFolders:'All folders',backToParent:'Back to main folder',openFolder:'Open folder',unfiledFolders:'Uncategorized folders',moveToParent:'Main folder',parentDeletedMsg:'The main folder was deleted. Child folders were moved to "Uncategorized folders".',confirmDeleteParentMsg:'Delete this main folder? Its child folders will not be deleted. They will be moved to "Uncategorized folders" and their documents will remain.',noParent:'— Uncategorized —'});
 Object.assign(LANG.cn,{folderActions:'文件夹操作',editFolderData:'编辑信息',deleteFolder:'删除文件夹',tabNotifications:'🔔 通知',notificationTitle:'🔔 租金 / 合同通知',notificationSub:'按月份查看收款日和合同到期日',notificationToday:'本月',billingOverview:'💰 本月收款',billingSentOverview:'已收款单',receiptSentOverview:'已发送收据',billingDaysCount:'收款日数量',propertiesWithBilling:'已设置收款日的房源',contractExpiryOverview:'📑 本月合同到期',billingRulesOverview:'🧩 收款日程',noBillingThisMonth:'本月没有收款项目',noExpiryThisMonth:'本月没有合同到期',billingRuleMissing:'未设置收款日',monthlyBilling:'每月',createFolder:'创建文件夹',editFolder:'编辑文件夹',save:'保存',billingDay:'每月收款日',documentsFolder:'文件',uploadPdf:'⬆ 上传 PDF',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',hasPdf:'已附加 PDF 文件',confirmDeletePdf:'删除 PDF 文件？',pdfOnly:'请选择 PDF 文件',pdfTooLarge:'PDF 文件超过 25MB',uploading:'上传中...',folderHasChildren:'一级文件夹仍有二级文件夹，无法删除',confirmDeleteFolder:'删除文件夹',docsRemainAll:'文档仍会保留在“全部”',deleteFailed:'删除失败',saveFailed:'保存失败',backToFolders:'全部文件夹',backToParent:'返回主文件夹',openFolder:'打开文件夹',unfiledFolders:'未分类文件夹',moveToParent:'主文件夹',parentDeletedMsg:'主文件夹已删除，子文件夹已移至“未分类文件夹”。',confirmDeleteParentMsg:'确定删除此主文件夹吗？子文件夹不会删除，而会移至“未分类文件夹”，其文档保持不变。',noParent:'— 未分类 —'});
 function t(key){ return (LANG[currentLang]||LANG.th)[key] || LANG.th[key] || key; }
@@ -2094,7 +2094,7 @@ function thaiBahtText(numStr){
 }
 
 /* ============================================================
-   AUDIT LOG — V5.9.7
+   AUDIT LOG — V5.9.8
    ============================================================ */
 async function writeAuditLog(action, entityType, entityId, summary, meta={}){
   try{
@@ -2418,7 +2418,7 @@ function renderFolderList(){
       html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
         <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span>
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}
-        <span class="folder-type-tag ft-rent">${t('rent')||'เช่า'}</span>
+        <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
       </div>`;
     });
   }else{
@@ -2445,7 +2445,7 @@ function renderFolderList(){
         const edit=canEditChild?`<button class="folder-tool folder-action-btn" data-folder-action="${child.id}" title="จัดการโฟลเดอร์">⚙️</button>`:'';
         html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
           <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}
-          <span class="folder-type-tag ft-rent">${t('rent')||'เช่า'}</span>
+          <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
         </div>`;
       });
     }
@@ -2755,7 +2755,6 @@ function openFolderEdit(fid){
   const allowed = currentUser?.role==='admin' || currentUser?.role==='staff';
   if(isDocumentsFolder(f)){ alert(t('documentsFolder')||'เอกสาร'); return; }
   if(!allowed){ alert('ไม่มีสิทธิ์แก้ไขโฟลเดอร์'); return; }
-  if(currentUser?.role==='staff' && !f.parentId){ alert('Staff ไม่สามารถแก้ไขโฟลเดอร์หลักได้'); return; }
   _editingFolderId=fid;
   configureFolderModal(f.parentId?'child':'parent',f.parentId||null);
   document.getElementById('folderModalTitle').textContent=(t('editFolder')||'แก้ไขโฟลเดอร์')+(f.parentId?` — ${foldersCache.find(x=>x.id===f.parentId)?.name||''}`:'');
@@ -2806,7 +2805,7 @@ async function getFolderFiles(folderId){
   const house=f && isDocumentsFolder(f) ? foldersCache.find(x=>x.id===f.parentId) : null;
   const source=house || f;
   const files=Array.isArray(source?.contractFiles)?source.contractFiles:[];
-  // Keep the stored order. V5.9.7 intentionally has no file sorting UI/logic.
+  // Keep the stored order. V5.9.8 intentionally has no file sorting UI/logic.
   return files.map(x=>({...x}));
 }
 async function loadFolderFiles(){
@@ -2885,7 +2884,7 @@ async function uploadFolderFiles(fileList){
       status.textContent=`กำลังอัปโหลด ${file.name} (${done+1}/${files.length}) ...`;
       const safe=(file.name||'file.pdf').replace(/[^a-zA-Z0-9._-]+/g,'_');
       // Reuse the existing contracts/ Storage namespace so no new Firebase
-      // Storage rule is required for this V5.9.7 upload flow.
+      // Storage rule is required for this V5.9.8 upload flow.
       const path=`contracts/${houseFolder.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safe}`;
       const snap=await storage.ref(path).put(file,{contentType:'application/pdf'});
       const url=await snap.ref.getDownloadURL();
@@ -2920,7 +2919,7 @@ function nextBillingDate(folder){
   return d;
 }
 function isoLocal(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';}
-function folderTypeLabel(type){return t('rent')||'เช่า';}
+function folderTypeLabel(type){return FOLDER_TYPES[type]?.label||type||'—';}
 function openFolderInfo(){
   let f=currentLibraryFolder();
   if(!f){alert('กรุณาเลือกโฟลเดอร์ก่อน');return;}
@@ -3290,6 +3289,8 @@ async function handleDocAction(act, id, name){
     await db.collection('documents').doc(id).update({sentStatus:!isSent});
     await writeAuditLog('document_sent_status','document',id,`${!isSent?'ทำเครื่องหมายส่งแล้ว':'ยกเลิกสถานะส่งแล้ว'} สำหรับเอกสาร`,{});
     loadDocList();
+    if(document.getElementById('notificationsView')?.classList.contains('active')) loadRentalCalendar();
+    refreshRentalNotificationBadge();
     return;
   }
   if(act==='preview'){
@@ -4230,7 +4231,7 @@ document.getElementById('generateBtn').addEventListener('click', async ()=>{
     if(pvBtn){pvBtn.disabled=false; pvBtn.textContent=pvBtnOrig||'📄 ส่งออก PDF';}
   }
 });
-// JPG export removed from UI (v5.9.7) — function kept for potential future use
+// JPG export removed from UI (v5.9.8) — function kept for potential future use
 async function exportJpg(){
   try {
     const canvas=await captureDoc();
@@ -4337,7 +4338,8 @@ async function markRentalNotificationRead(n){
   localStorage.setItem('livrent_rental_notif_read_'+(currentUser?.uid||''),JSON.stringify(reads));
   if(currentUser) currentUser.notificationReads=Object.assign({},currentUser.notificationReads||{}, {[key]:Date.now()});
   try{
-    await db.collection('users').doc(currentUser.uid).set({notificationReads:{[key]:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});
+    const next=Object.assign({},currentUser?.notificationReads||{}, {[key]:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('users').doc(currentUser.uid).set({notificationReads:next},{merge:true});
   }catch(e){}
   refreshRentalNotificationBadge();
 }
@@ -4379,47 +4381,37 @@ async function loadRentalCalendar(){
     if(ds){const d=new Date(ds+'T00:00:00'); if(!isNaN(d.getTime())) return {y:d.getFullYear(),m:d.getMonth()};}
     return null;
   }
-  function houseKey(rec){
-    const d=rec.data||{};
-    return String(d.propertyAddress||rec.folderId||rec.id||'').trim().toLowerCase();
-  }
   function createdTime(rec){
     const d=rec.createdAt?.toDate ? rec.createdAt.toDate() : (rec.createdAt ? new Date(rec.createdAt) : null);
     return d && !isNaN(d.getTime()) ? d.getTime() : 0;
   }
+  function docForFolderMonth(folderId,type){
+    const candidates=allDocs.filter(r=>{
+      const z=docMonth(r);
+      return r.folderId===folderId && (r.data?.docType||'')===type && z && z.y===y && z.m===m;
+    });
+    // The system is designed for one invoice + one receipt per house/month.
+    // If old data contains duplicates, use the newest one without creating extra rows.
+    candidates.sort((a,b)=>createdTime(b)-createdTime(a));
+    return candidates[0]||null;
+  }
 
-  const monthDocs=allDocs.filter(r=>{const z=docMonth(r);return z&&z.y===y&&z.m===m;});
-  const invoices=monthDocs.filter(r=>(r.data?.docType||'')==='invoice');
-  const receipts=monthDocs.filter(r=>(r.data?.docType||'')==='receipt');
-
-  const invoiceMap={};
-  invoices.forEach(r=>{
-    const k=houseKey(r);
-    if(!k)return;
-    if(!invoiceMap[k] || createdTime(r)>=createdTime(invoiceMap[k])) invoiceMap[k]=r;
-  });
-  const receiptMap={};
-  receipts.forEach(r=>{
-    const k=houseKey(r);
-    if(!k)return;
-    if(!receiptMap[k] || createdTime(r)>=createdTime(receiptMap[k])) receiptMap[k]=r;
-  });
-
-  const billingRows=Object.values(invoiceMap).map(inv=>{
-    const d=inv.data||{};
-    const key=houseKey(inv);
-    const folder=rents.find(f=>f.id===inv.folderId) || rents.find(f=>String(f.name||'').trim().toLowerCase()===key);
-    const receipt=receiptMap[key]||null;
-    const billingDate=folder?.billingDay ? billingDateForMonth(folder,y,m) : (d.date||'');
+  const billingRows=rents.map(folder=>{
+    const inv=docForFolderMonth(folder.id,'invoice');
+    const receipt=docForFolderMonth(folder.id,'receipt');
+    const billingDate=folder.billingDay ? billingDateForMonth(folder,y,m) : (inv?.data?.date||'');
+    const amount=inv ? grandTotal(inv.data||{}) : Number(folder.billingAmount||0);
     return {
-      inv, receipt, folder,
-      house:d.propertyAddress||folder?.name||'—',
+      inv,receipt,folder,
+      house:folder.name||inv?.data?.propertyAddress||'—',
       billingDate,
-      amount:grandTotal(d),
-      billingSent:!!inv.sentStatus,
-      receiptSent:!!receipt?.sentStatus
+      amount,
+      billingSent:!!inv?.sentStatus,
+      receiptSent:!!receipt?.sentStatus,
+      hasBillingRule:!!folder.billingDay,
+      hasMonthDocument:!!(inv||receipt)
     };
-  });
+  }).filter(r=>r.hasBillingRule||r.hasMonthDocument);
 
   const expiry=rents.filter(f=>{
     if(!f.contractEnd)return false;
@@ -4427,68 +4419,66 @@ async function loadRentalCalendar(){
     return d.getFullYear()===y&&d.getMonth()===m;
   });
 
+  const totalRent=billingRows.reduce((sum,r)=>sum+(Number(r.amount)||0),0);
+  const collectedRent=billingRows.reduce((sum,r)=>sum+(r.receiptSent?(Number(r.amount)||0):0),0);
+  const collectionPct=totalRent>0 ? Math.min(100,Math.max(0,(collectedRent/totalRent)*100)) : 0;
   const billingSentCount=billingRows.filter(r=>r.billingSent).length;
   const receiptSentCount=billingRows.filter(r=>r.receiptSent).length;
 
   const summary=document.getElementById('rentalSummaryGrid');
-  if(summary)summary.innerHTML=[
-    [String(billingRows.length),'billingOverview'],
-    [String(billingSentCount),'billingSentOverview'],
-    [String(receiptSentCount),'receiptSentOverview'],
-    [String(expiry.length),'contractExpiryOverview']
-  ].map(x=>`<div class="rental-summary-card"><div class="n">${x[0]}</div><div class="l">${t(x[1])}</div></div>`).join('');
+  if(summary)summary.innerHTML=`
+    <div class="rental-summary-card rent-total">
+      <div class="n">${fmt(totalRent)} ฿</div>
+      <div class="l">ค่าเช่าทั้งหมด · ${billingRows.length} รายการ</div>
+    </div>
+    <div class="rental-summary-card rent-collected">
+      <div class="n">${fmt(collectedRent)} ฿</div>
+      <div class="l">ค่าเช่าที่เก็บได้แล้ว</div>
+      <div class="rental-progress" aria-label="${collectionPct.toFixed(0)}%"><span style="width:${collectionPct.toFixed(2)}%"></span></div>
+      <div class="rental-percent">${collectionPct.toFixed(0)}%</div>
+    </div>
+    <div class="rental-summary-card">
+      <div class="n">${billingSentCount}</div>
+      <div class="l">${t('billingSentOverview')}</div>
+    </div>
+    <div class="rental-summary-card">
+      <div class="n">${receiptSentCount}</div>
+      <div class="l">${t('receiptSentOverview')}</div>
+    </div>
+    <div class="rental-summary-card">
+      <div class="n">${expiry.length}</div>
+      <div class="l">${t('contractExpiryOverview')}</div>
+    </div>`;
 
-  const bl=document.getElementById('rentalBillingMonthList');
-  if(bl){
+  const rules=document.getElementById('rentalBillingRulesList');
+  if(rules){
     if(!billingRows.length){
-      bl.innerHTML=`<div class="lib-empty" style="padding:20px">${t('noBillingThisMonth')}</div>`;
+      rules.innerHTML=`<div class="lib-empty" style="padding:25px">${t('noBillingThisMonth')}</div>`;
     }else{
-      const rows=billingRows.slice().sort((a,b)=>String(a.billingDate||'').localeCompare(String(b.billingDate||'')) || a.house.localeCompare(b.house));
-      bl.innerHTML=`<div class="rental-billing-table-wrap">
-        <div class="rental-billing-table rental-billing-head">
-          <div>${t('billingDay')}</div><div>บ้านเลขที่</div><div>วางบิล</div><div>ใบเสร็จ</div><div class="hide-mobile">ค่าเช่า</div><div>เปิด</div>
+      rules.innerHTML=`
+        <div class="rental-rule-row rental-rule-head">
+          <div>บ้าน</div><div>วันวางบิล</div><div>วางบิล</div><div>ใบเสร็จ</div><div class="hide-mobile">ค่าเช่า</div>
         </div>
-        ${rows.map(r=>{
+        ${billingRows.map(r=>{
           const done=r.billingSent&&r.receiptSent;
-          const openBtn=done?'':`<button type="button" class="rental-open-btn" data-rental-doc-open="${escAttr(r.inv.id)}">เปิด</button>`;
-          return `<div class="rental-billing-table">
+          const openBtn=done?'':`<button type="button" class="rental-open-btn" data-rental-folder-open="${escAttr(r.folder.id)}">เปิด</button>`;
+          return `<div class="rental-rule-row">
+            <div><b>${escHtml(r.house)}</b> ${openBtn}</div>
             <div>${r.billingDate?formatDate(r.billingDate):'—'}</div>
-            <div><b>${escHtml(r.house)}</b></div>
-            <div class="rental-status">${r.billingSent?'✓':'—'}</div>
-            <div class="rental-status">${r.receiptSent?'✓':'—'}</div>
-            <div class="hide-mobile">${fmt(r.amount)} ฿</div>
-            <div>${openBtn}</div>
+            <div class="rental-status">${r.billingSent?'✓ ส่งแล้ว':'—'}</div>
+            <div class="rental-status">${r.receiptSent?'✓ ส่งแล้ว':'—'}</div>
+            <div class="hide-mobile">${r.amount?fmt(r.amount)+' ฿':'—'}</div>
           </div>`;
-        }).join('')}
-      </div>`;
-      bl.querySelectorAll('[data-rental-doc-open]').forEach(b=>b.addEventListener('click',async()=>{
-        const id=b.dataset.rentalDocOpen;
-        const rec=allDocs.find(x=>x.id===id);
-        if(rec?.folderId){ openRentalFolderById(rec.folderId); }
-        else { currentFolderId='__all__'; currentParentViewId=null; switchTab('library'); loadDocList(); }
-      }));
+        }).join('')}`;
+      rules.querySelectorAll('[data-rental-folder-open]').forEach(b=>b.addEventListener('click',()=>openRentalFolderById(b.dataset.rentalFolderOpen)));
     }
   }
 
   const el=document.getElementById('rentalExpiryMonthList');
   if(el)el.innerHTML=expiry.length
-    ?expiry.slice().sort((a,b)=>String(a.contractEnd).localeCompare(String(b.contractEnd))).map(f=>`<div class="rental-house-row"><span>📑 <b>${escHtml(f.name)}</b><br><small style="color:var(--ink-soft)">${formatDate(f.contractEnd)} · ${t('contractEnd')}</small></span><button type="button" data-rental-open="${escAttr(f.id)}">เปิด</button></div>`).join('')
+    ?expiry.map(f=>`<div class="rental-house-row"><span>📑 <b>${escHtml(f.name)}</b><br><small style="color:var(--ink-soft)">${formatDate(f.contractEnd)} · ${t('contractEnd')}</small></span><button type="button" data-rental-open="${escAttr(f.id)}">เปิด</button></div>`).join('')
     :`<div class="lib-empty" style="padding:20px">${t('noExpiryThisMonth')}</div>`;
   el?.querySelectorAll('[data-rental-open]').forEach(b=>b.addEventListener('click',()=>openRentalFolderById(b.dataset.rentalOpen)));
-
-  const rules=document.getElementById('rentalBillingRulesList');
-  if(rules){
-    rules.innerHTML=rents.length?`
-      <div class="rental-rule-row rental-rule-head"><div>บ้าน</div><div>วันวางบิล</div><div class="hide-mobile">ค่าเช่า</div><div>จัดการ</div></div>
-      ${rents.map(f=>{
-        const inv=billingRows.find(r=>r.folder?.id===f.id);
-        const done=!!inv?.billingSent&&!!inv?.receiptSent;
-        const openBtn=done?'':`<button type="button" class="rental-open-btn" data-rental-folder-open="${escAttr(f.id)}">เปิด</button>`;
-        return `<div class="rental-rule-row"><div><b>${escHtml(f.name)}</b></div><div>${f.billingDay?f.billingDay:'—'}</div><div class="hide-mobile">${f.billingAmount!=null?fmt(Number(f.billingAmount))+' ฿':'—'}</div><div>${openBtn}</div></div>`;
-      }).join('')}`
-      :`<div class="lib-empty" style="padding:20px">—</div>`;
-    rules.querySelectorAll('[data-rental-folder-open]').forEach(b=>b.addEventListener('click',()=>openRentalFolderById(b.dataset.rentalFolderOpen)));
-  }
 }
 document.getElementById('rentalMonthPrev')?.addEventListener('click',()=>{_rentalCalendarMonth=new Date(_rentalCalendarMonth.getFullYear(),_rentalCalendarMonth.getMonth()-1,1);loadRentalCalendar();});
 document.getElementById('rentalMonthNext')?.addEventListener('click',()=>{_rentalCalendarMonth=new Date(_rentalCalendarMonth.getFullYear(),_rentalCalendarMonth.getMonth()+1,1);loadRentalCalendar();});
@@ -4503,30 +4493,12 @@ function refreshRentalNotificationBadge(){
   return items;
 }
 async function openRentalNotifications(){
-  const list=document.getElementById('rentalNotifList'), items=refreshRentalNotificationBadge(), reads=rentalNotificationReadMap();
-  if(!items.length){list.innerHTML='<div class="lib-empty" style="padding:30px 15px">🎉 ตอนนี้ยังไม่มีรายการที่ต้องแจ้งเตือน</div>';}
-  else list.innerHTML=items.map(n=>{
-    const read=!!reads[rentalNotificationKey(n)];
-    return `<div class="rental-notif-item ${n.kind}" style="${read?'opacity:.62':''}">
-      <div class="rn-title">${escHtml(n.title)} ${read?'<span style="font-size:10px;color:var(--ink-soft)">✓ อ่านแล้ว</span>':''}</div>
-      <div class="rn-sub">${escHtml(n.sub)}</div>
-      <button class="contract-btn" style="margin-top:7px" data-notif-folder="${escAttr(n.folderId)}" data-notif-key="${escAttr(rentalNotificationKey(n))}">เปิดโฟลเดอร์</button>
-    </div>`;
-  }).join('');
-  // Opening the notification center counts as viewing the current alerts.
-  // Persist the read state to the signed-in user's profile so the red dot also
-  // stays cleared when the same account is used on another device.
-  if(items.length && currentUser?.uid){
+  const items=rentalNotificationItems();
+  if(currentUser?.uid){
     for(const n of items){ try{ await markRentalNotificationRead(n); }catch(e){} }
   }
   refreshRentalNotificationBadge();
-  list.querySelectorAll('[data-notif-folder]').forEach(b=>b.addEventListener('click',async()=>{
-    const n=items.find(x=>rentalNotificationKey(x)===b.dataset.notifKey);
-    if(n) await markRentalNotificationRead(n);
-    const fid=b.dataset.notifFolder; currentParentViewId=null; currentFolderId=fid; renderFolderList(); loadDocList();
-    const f=foldersCache.find(x=>x.id===fid); document.getElementById('libFolderTitle').textContent=f?.name||'';
-    document.getElementById('rentalNotifModal').classList.add('hidden'); closeLibSidebar();
-  }));
+  switchTab('notifications');
 }
 document.getElementById('notifBtn').addEventListener('click',openRentalNotifications);
 document.getElementById('rentalNotifClose')?.addEventListener('click',()=>document.getElementById('rentalNotifModal').classList.add('hidden'));
@@ -4731,7 +4703,6 @@ function mobileEditorShowForm(){
   const ev=document.getElementById('editorView');
   if(f){ f.style.display=''; }
   if(p) p.classList.remove('mobile-visible');
-  const fab=document.getElementById('mobilePreviewFloatBtn'); if(fab){fab.textContent='👁';fab.title='ดูตัวอย่าง';}
   if(ev){ requestAnimationFrame(()=>{ ev.scrollTop=_mFormScrollTop; }); }
 }
 function mobileEditorShowPreview(){
@@ -4741,13 +4712,9 @@ function mobileEditorShowPreview(){
   if(ev) _mFormScrollTop=ev.scrollTop;
   if(f){ f.style.display='none'; }
   if(p) p.classList.add('mobile-visible');
-  const fab=document.getElementById('mobilePreviewFloatBtn'); if(fab){fab.textContent='×';fab.title='กลับไปแบบฟอร์ม';}
   setTimeout(scalePreview,60);
 }
-document.getElementById('mobilePreviewFloatBtn')?.addEventListener('click',()=>{
-  const p=document.querySelector('.preview-pane');
-  if(p?.classList.contains('mobile-visible')) mobileEditorShowForm(); else mobileEditorShowPreview();
-});
+document.getElementById('mobilePreviewFloatBtn')?.addEventListener('click',mobileEditorShowPreview);
 
 // C. Mobile folder select
 function syncMobileFolderSelect(){
