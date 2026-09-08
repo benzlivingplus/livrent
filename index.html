@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.10.6">
-<!-- V5.10.6: rental data/status, folder-based rent, billing filtering, create-in-main, document rename input fix -->
+<meta name="livrent-version" content="5.10.7">
+<!-- V5.10.7: browser back navigation for library folders -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -4572,11 +4572,56 @@ async function exportJpg(){
 /* ============================================================
    TAB SWITCHING
    ============================================================ */
+function getLibraryHistoryState(){
+  return {livrent:true,tab:'library',folderId:currentFolderId||'__all__',parentViewId:currentParentViewId||null};
+}
+function ensureLibraryHistoryEntry(){
+  try{
+    if(!history.state?.livrent){
+      const st=getLibraryHistoryState();
+      history.replaceState(st,'',(location.pathname||'/')+'#library');
+    }
+  }catch(e){}
+}
+function restoreLibraryHistoryState(st){
+  const folderId=st?.folderId||'__all__';
+  const parentId=st?.parentViewId||null;
+  currentFolderId=folderId;
+  currentParentViewId=parentId;
+  if(folderId==='__all__'){
+    currentParentViewId=null;
+    document.getElementById('libFolderTitle').textContent=t('other');
+  }else if(folderId==='__parent_view__'){
+    const parent=parentId?foldersCache.find(x=>x.id===parentId):null;
+    document.getElementById('libFolderTitle').textContent=parent?.name||t('other');
+  }else{
+    const f=foldersCache.find(x=>x.id===folderId);
+    if(f && isDocumentsFolder(f)){
+      const house=foldersCache.find(x=>x.id===f.parentId);
+      currentParentViewId=house?.parentId||null;
+      document.getElementById('libFolderTitle').textContent=(t('documentsFolder')||'เอกสาร')+' — '+(house?.name||'');
+    }else{
+      document.getElementById('libFolderTitle').textContent=f?.name||t('other');
+    }
+  }
+  renderFolderList();
+  loadDocList();
+  const f=foldersCache.find(x=>x.id===currentFolderId);
+  const trigger=document.getElementById('libSidebarTrigger');
+  if(trigger) trigger.textContent='📂 '+(f && isDocumentsFolder(f)?(t('documentsFolder')||'เอกสาร'):(currentFolderId==='__all__'?t('other'):(f?.name||'')));
+  setTimeout(updateRentalContractHeading,0);
+}
+function pushLibraryHistoryState(){
+  try{
+    const st=getLibraryHistoryState(), cur=history.state;
+    if(cur?.livrent && cur.tab==='library' && cur.folderId===st.folderId && (cur.parentViewId||null)===(st.parentViewId||null)) return;
+    history.pushState(st,'',(location.pathname||'/')+'#library');
+  }catch(e){}
+}
 function switchTab(tab, pushState=true){
   // Staff must never open the Admin/Management view, even by URL/hash.
-  if(tab==='admin' && currentUser?.role!=='admin'){
-    tab='library';
-  }
+  if(tab==='admin' && currentUser?.role!=='admin') tab='library';
+  if(!history.state?.livrent) ensureLibraryHistoryEntry();
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(tab+'View').classList.add('active');
@@ -4585,9 +4630,18 @@ function switchTab(tab, pushState=true){
   if(tab==='editor') setTimeout(scalePreview,100);
   if(tab==='stats') loadStats();
   if(tab==='notifications') loadRentalCalendar();
-  if(pushState) try{ history.pushState({tab},'',(location.pathname||'/')+'#'+tab); }catch(e){}
+  if(pushState) try{ history.pushState({livrent:true,tab,folderId:currentFolderId||'__all__',parentViewId:currentParentViewId||null},'',(location.pathname||'/')+'#'+tab); }catch(e){}
 }
-window.addEventListener('popstate', e=>{ if(e.state?.tab) switchTab(e.state.tab, false); });
+window.addEventListener('popstate',e=>{
+  if(e.state?.livrent){
+    if(e.state.tab==='library') restoreLibraryHistoryState(e.state);
+    else switchTab(e.state.tab,false);
+  }else{
+    const st={livrent:true,tab:'library',folderId:'__all__',parentViewId:null};
+    try{ history.replaceState(st,'',(location.pathname||'/')+'#library'); }catch(err){}
+    restoreLibraryHistoryState(st);
+  }
+});
 document.querySelectorAll('.tab-btn').forEach(btn=>{ btn.addEventListener('click',()=>switchTab(btn.dataset.tab)); });
 
 /* ============================================================
@@ -5081,7 +5135,7 @@ document.getElementById('mobileFolderSelect')?.addEventListener('change',e=>{
   }else{
     currentParentViewId=null; currentFolderId='__all__'; renderFolderList(); loadDocList(); document.getElementById('libFolderTitle').textContent=t('other');
   }
-  setTimeout(updateRentalContractHeading,0);
+  setTimeout(()=>{ pushLibraryHistoryState(); updateRentalContractHeading(); },0);
 });
 
 // D0. Hamburger drawer
