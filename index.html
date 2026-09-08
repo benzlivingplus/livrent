@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.10.2">
+<meta name="livrent-version" content="5.10.3">
 <!-- V5.10: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2443,7 +2443,7 @@ let currentParentViewId = null; // null = root; parent id = show its level-2 fol
 
 function isChildFolder(f){ return !!(f && f.parentId && !f.isSystemFolder); }
 function isDocumentsFolder(f){ return !!(f && f.isSystemFolder && f.systemFolderType==='documents'); }
-function getChildFolders(parentId){ return foldersCache.filter(f=>f.parentId===parentId && !f.isSystemFolder); }
+function getChildFolders(parentId){ return sortFoldersByName(foldersCache.filter(f=>f.parentId===parentId && !f.isSystemFolder)); }
 function getDocumentsFolderFor(childId){ return foldersCache.find(f=>f.parentId===childId && isDocumentsFolder(f)) || null; }
 function getParentFolder(folderId){
   const f=foldersCache.find(x=>x.id===folderId);
@@ -2509,6 +2509,45 @@ async function refreshFolderCountsInBackground(){
   }catch(e){ console.warn('Background folder counts:',e); }
 }
 
+// V5.10.3: natural folder-name sorting (numeric parts are compared as numbers;
+// names without numbers follow Thai/Latin alphabetical order).
+const _folderNameCollator = new Intl.Collator(['th','en'], {numeric:true, sensitivity:'base'});
+function compareFolderNames(a,b){
+  const an=String(a?.name||'').trim(), bn=String(b?.name||'').trim();
+  const ar=an.match(/\d+(?:\.\d+)?/g), br=bn.match(/\d+(?:\.\d+)?/g);
+  if(ar && br){
+    const len=Math.min(ar.length,br.length);
+    for(let i=0;i<len;i++){
+      const x=Number(ar[i]), y=Number(br[i]);
+      if(x!==y) return x-y;
+    }
+    if(ar.length!==br.length) return ar.length-br.length;
+  }else if(ar && !br){
+    return -1;
+  }else if(!ar && br){
+    return 1;
+  }
+  const c=_folderNameCollator.compare(an,bn);
+  return c || String(a?.id||'').localeCompare(String(b?.id||''));
+}
+function sortFoldersByName(arr){ return (Array.isArray(arr)?arr.slice():[]).sort(compareFolderNames); }
+
+function getDocCreatedMs(rec){
+  const v=rec?.createdAt;
+  try{
+    if(v?.toMillis) return v.toMillis();
+    if(v?.toDate) return v.toDate().getTime();
+    if(typeof v==='number') return Number.isFinite(v)?v:0;
+    if(typeof v==='string'){ const t=Date.parse(v); return Number.isFinite(t)?t:0; }
+  }catch(e){}
+  return 0;
+}
+function compareDocumentsByCreatedAt(a,b){
+  const diff=getDocCreatedMs(b)-getDocCreatedMs(a); // newest first
+  return diff || String(b?.id||'').localeCompare(String(a?.id||''));
+}
+function sortDocumentsByCreatedAt(arr){ return (Array.isArray(arr)?arr.slice():[]).sort(compareDocumentsByCreatedAt); }
+
 async function loadFolders(){
   // Load ONLY folder metadata first. Never download the whole documents
   // collection just to paint the Library sidebar.
@@ -2546,7 +2585,7 @@ function renderFolderList(){
   let html='';
 
   if(parentView){
-    const children=getChildFolders(parentView.id).filter(f=>!f.orphaned).slice();
+    const children=sortFoldersByName(getChildFolders(parentView.id).filter(f=>!f.orphaned));
     const backName = (t('backToFolders') || 'โฟลเดอร์ทั้งหมด');
     html+=`<div class="folder-item" data-folder-back="1" style="justify-content:flex-start;color:var(--maroon);font-weight:700">← ${escHtml(backName)}</div>`;
     html+=`<div class="folder-item folder-level-1 active" style="justify-content:flex-start;cursor:default">
@@ -2570,7 +2609,7 @@ function renderFolderList(){
     html+=`<div class="folder-item${currentFolderId==='__all__'?' active':''}" data-fid="__all__" style="justify-content:flex-start">
       <span style="flex:1">${t('other')}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:4px">(${otherCount})</span><span class="folder-type-tag ft-all">OTHER</span>
     </div>`;
-    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned);
+    const parents=sortFoldersByName(foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned));
     parents.forEach(parent=>{
       const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice();
       const parentCount=children.length + (folderDocCounts[parent.id]||0);
@@ -2581,7 +2620,7 @@ function renderFolderList(){
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${parentCount})</span>${addChild}${parentAction}
       </div>`;
     });
-    const orphans=foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned));
+    const orphans=sortFoldersByName(foldersCache.filter(f=>!f.parentId && (Number(f.level||0)===2 || f.orphaned)));
     if(orphans.length){
       html+=`<div style="padding:12px 12px 5px;color:var(--ink-soft);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${t('unfiledFolders')||'โฟลเดอร์ที่ยังไม่ได้จัดหมวด'}</div>`;
       orphans.forEach(child=>{
@@ -2686,7 +2725,7 @@ function renderFolderMoveLevel(parentId=null){
   _folderMovePath=parentId ? [...(function(){const a=[];let x=current;while(x){a.unshift(x);x=x.parentId?foldersCache.find(f=>f.id===x.parentId):null;}return a;})()] : [];
   crumb.textContent=current ? ('📂 '+_folderMovePath.map(x=>x.name).join(' / ')) : '📂 '+(t('backToFolders')||'โฟลเดอร์หลัก');
   const blocked=new Set([_folderMoveId,...folderMoveDescendantIds(_folderMoveId)]);
-  const items=foldersCache.filter(f=>(parentId?f.parentId===parentId:!f.parentId) && !f.isSystemFolder && !f.orphaned && !blocked.has(f.id));
+  const items=sortFoldersByName(foldersCache.filter(f=>(parentId?f.parentId===parentId:!f.parentId) && !f.isSystemFolder && !f.orphaned && !blocked.has(f.id)));
   let html='';
   if(parentId){
     html+=`<button type="button" class="folder-move-row" data-move-up="1" style="width:100%;text-align:left;border:0;background:var(--line-soft);padding:9px 10px;border-radius:6px;cursor:pointer;font-family:inherit;margin-bottom:6px">← ${escHtml(t('backToParent')||'กลับไป')} </button>`;
@@ -2745,8 +2784,8 @@ document.getElementById('folderMoveConfirm')?.addEventListener('click',confirmFo
 
 function populateFolderSelect(){
   const selects=[document.getElementById('docMoveSelect'),document.getElementById('dpMoveSelect')].filter(Boolean);
-  const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned).slice();
-  const children=foldersCache.filter(f=>(!!f.parentId && !f.isSystemFolder) || f.orphaned).slice();
+  const parents=sortFoldersByName(foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned));
+  const children=sortFoldersByName(foldersCache.filter(f=>(!!f.parentId && !f.isSystemFolder) || f.orphaned));
   selects.forEach(sel=>{
     const current=sel.value;
     let html=`<option value="">📂 ${t('folderAll')}</option>`;
@@ -2763,7 +2802,7 @@ function configureFolderModal(mode,parentId=null){
   const parentWrap=document.getElementById('folderParentWrap');
   const parentInput=document.getElementById('folderParentInput');
   if(parentInput){
-    const parents=foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned);
+    const parents=sortFoldersByName(foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned));
     parentInput.innerHTML=`<option value="">${t('noParent')||'— ยังไม่ได้จัดหมวด —'}</option>`+parents.map(p=>`<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
     parentInput.value=parentId||'';
   }
@@ -2788,7 +2827,7 @@ async function createDocumentsSystemFolder(childId){
   return ref.id;
 }
 async function ensureDocumentsSystemFolders(){
-  const children=foldersCache.filter(f=>f.parentId && !f.isSystemFolder && Number(f.level||0)===2 && !f.orphaned);
+  const children=sortFoldersByName(foldersCache.filter(f=>f.parentId && !f.isSystemFolder && Number(f.level||0)===2 && !f.orphaned));
   for(const child of children){
     if(!getDocumentsFolderFor(child.id)) {
       try{
@@ -3305,9 +3344,8 @@ async function queryLibraryDocuments(reset=true){
     let q=db.collection('documents').where('folderId','==',null).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
-    docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    docs=sortDocumentsByCreatedAt(snap.docs.map(d=>({id:d.id,...d.data()})));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
-    docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -3320,7 +3358,7 @@ async function queryLibraryDocuments(reset=true){
     let q=db.collection('documents').where('folderId','==',currentParentViewId).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
-    docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    docs=sortDocumentsByCreatedAt(snap.docs.map(d=>({id:d.id,...d.data()})));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     _docHasMore=snap.docs.length===_docPageSize;
@@ -3331,7 +3369,7 @@ async function queryLibraryDocuments(reset=true){
     let q=db.collection('documents').where('folderId','==',selected.id).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
-    docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    docs=sortDocumentsByCreatedAt(snap.docs.map(d=>({id:d.id,...d.data()})));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     _docHasMore=snap.docs.length===_docPageSize;
@@ -3343,7 +3381,7 @@ async function queryLibraryDocuments(reset=true){
     let q=db.collection('documents').where('folderId','==',selected.id).limit(_docPageSize);
     if(!reset && _docPageCursor) q=q.startAfter(_docPageCursor);
     const snap=await q.get();
-    docs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    docs=sortDocumentsByCreatedAt(snap.docs.map(d=>({id:d.id,...d.data()})));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
@@ -3465,7 +3503,7 @@ async function handleDocAction(act, id, name){
     document.getElementById('dpMoveWrap').style.display='none';
     const moveSelect = document.getElementById('dpMoveSelect');
     let moveOpts='<option value="">📂 '+t('other')+'</option>';
-    foldersCache.forEach(f=>{ moveOpts+=`<option value="${f.id}"${rec.folderId===f.id?' selected':''}>${escHtml(f.name)}</option>`; });
+    sortFoldersByName(foldersCache).forEach(f=>{ moveOpts+=`<option value="${f.id}"${rec.folderId===f.id?' selected':''}>${escHtml(f.name)}</option>`; });
     moveSelect.innerHTML=moveOpts; moveSelect.value=rec.folderId||'';
     document.getElementById('docPreviewModal').classList.remove('hidden');
     return;
@@ -3485,7 +3523,7 @@ async function handleDocAction(act, id, name){
     _dpCurrentRec = snap.data();
     const moveSelect = document.getElementById('docMoveSelect');
     let moveOpts='<option value="">📂 '+t('other')+'</option>';
-    foldersCache.forEach(f=>{ moveOpts+=`<option value="${f.id}"${_dpCurrentRec.folderId===f.id?' selected':''}>${escHtml(f.name)}</option>`; });
+    sortFoldersByName(foldersCache).forEach(f=>{ moveOpts+=`<option value="${f.id}"${_dpCurrentRec.folderId===f.id?' selected':''}>${escHtml(f.name)}</option>`; });
     moveSelect.innerHTML=moveOpts;
     document.getElementById('docMoveTitle').textContent=t('moveFolder')+': '+(_dpCurrentRec.name||t('document'));
     document.getElementById('docMoveModal').classList.remove('hidden');
