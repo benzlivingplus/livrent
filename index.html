@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.10.3">
+<meta name="livrent-version" content="5.10.4">
 <!-- V5.10: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2509,28 +2509,49 @@ async function refreshFolderCountsInBackground(){
   }catch(e){ console.warn('Background folder counts:',e); }
 }
 
-// V5.10.3: natural folder-name sorting (numeric parts are compared as numbers;
-// names without numbers follow Thai/Latin alphabetical order).
-const _folderNameCollator = new Intl.Collator(['th','en'], {numeric:true, sensitivity:'base'});
-function compareFolderNames(a,b){
-  const an=String(a?.name||'').trim(), bn=String(b?.name||'').trim();
-  const ar=an.match(/\d+(?:\.\d+)?/g), br=bn.match(/\d+(?:\.\d+)?/g);
-  if(ar && br){
-    const len=Math.min(ar.length,br.length);
-    for(let i=0;i<len;i++){
-      const x=Number(ar[i]), y=Number(br[i]);
-      if(x!==y) return x-y;
-    }
-    if(ar.length!==br.length) return ar.length-br.length;
-  }else if(ar && !br){
-    return -1;
-  }else if(!ar && br){
-    return 1;
-  }
-  const c=_folderNameCollator.compare(an,bn);
-  return c || String(a?.id||'').localeCompare(String(b?.id||''));
+// V5.10.4: deterministic natural folder sorting.
+// Numeric names/parts are compared as real numbers (e.g. 222/41 < 222/94 < 222/127).
+// Names without numbers are sorted alphabetically using Thai/English locale rules.
+const _folderNameCollator = new Intl.Collator(['th','en'], {numeric:false, sensitivity:'base'});
+function _folderSortTokens(value){
+  const text=String(value??'').trim();
+  return text.split(/(\d+(?:\.\d+)?)/g).filter(Boolean).map(part=>{
+    if(/^\d+(?:\.\d+)?$/.test(part)) return {n:Number(part)};
+    return {s:part};
+  });
 }
-function sortFoldersByName(arr){ return (Array.isArray(arr)?arr.slice():[]).sort(compareFolderNames); }
+function compareFolderNames(a,b){
+  const an=String(a?.name??'').trim(), bn=String(b?.name??'').trim();
+  const ar=an.match(/\d+(?:\.\d+)?/g), br=bn.match(/\d+(?:\.\d+)?/g);
+
+  // Keep all names containing numbers ahead of names containing no numbers.
+  if(ar && !br) return -1;
+  if(!ar && br) return 1;
+
+  // Natural comparison: compare each text/number segment in order.
+  const at=_folderSortTokens(an), bt=_folderSortTokens(bn);
+  const len=Math.max(at.length,bt.length);
+  for(let i=0;i<len;i++){
+    const x=at[i], y=bt[i];
+    if(!x) return -1;
+    if(!y) return 1;
+    if(x.n!==undefined && y.n!==undefined){
+      if(x.n!==y.n) return x.n-y.n;
+    }else if(x.n!==undefined){
+      // A numeric segment sorts before a text segment at the same position.
+      return -1;
+    }else if(y.n!==undefined){
+      return 1;
+    }else{
+      const c=_folderNameCollator.compare(x.s,y.s);
+      if(c) return c;
+    }
+  }
+  return an.length-bn.length || String(a?.id||'').localeCompare(String(b?.id||''));
+}
+function sortFoldersByName(arr){
+  return (Array.isArray(arr)?arr.slice():[]).sort(compareFolderNames);
+}
 
 function getDocCreatedMs(rec){
   const v=rec?.createdAt;
@@ -2611,7 +2632,7 @@ function renderFolderList(){
     </div>`;
     const parents=sortFoldersByName(foldersCache.filter(f=>!f.parentId && Number(f.level||1)!==2 && !f.orphaned));
     parents.forEach(parent=>{
-      const children=getChildFolders(parent.id).filter(f=>!f.orphaned).slice();
+      const children=sortFoldersByName(getChildFolders(parent.id).filter(f=>!f.orphaned));
       const parentCount=children.length + (folderDocCounts[parent.id]||0);
       const parentAction=isAdmin?`<button class="folder-tool folder-action-btn" data-folder-action="${parent.id}" title="จัดการโฟลเดอร์">⚙️</button>`:'';
       const addChild='';
