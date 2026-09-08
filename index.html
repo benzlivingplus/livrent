@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.10.1">
+<meta name="livrent-version" content="5.10.2">
 <!-- V5.10: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1434,7 +1434,7 @@ body.is-admin .folder-root-add-btn{display:inline-flex !important;align-items:ce
           <h3 style="margin:0;flex:1">📜 LOG การใช้งาน</h3>
           <button type="button" class="btn btn-secondary" id="auditLogRefreshBtn" style="padding:6px 9px;font-size:11px">รีเฟรช</button>
         </div>
-        <div id="auditLogList"><div class="lib-empty" style="padding:20px 0">กำลังโหลด...</div></div>
+        <div id="auditLogList"><div class="lib-empty" style="padding:20px 0">กำลังโหลด...</div></div><div id="auditLogPager" style="display:none"></div>
       </div>
       <div class="admin-section" id="adminUserManagement">
         <h3>👥 ผู้ใช้งาน</h3>
@@ -2154,49 +2154,60 @@ let auditLogRowsCache=[];
 let auditLogPage=1;
 const AUDIT_LOG_PAGE_SIZE=20;
 
+function renderAuditLogPage(page=1, note=''){
+  const el=document.getElementById('auditLogList');
+  const pager=document.getElementById('auditLogPager');
+  if(!el) return;
+  const rows=Array.isArray(auditLogRowsCache)?auditLogRowsCache.slice().sort((a,b)=>b.ts-a.ts):[];
+  const totalPages=Math.max(1,Math.ceil(rows.length/AUDIT_LOG_PAGE_SIZE));
+  auditLogPage=Math.min(Math.max(1,Number(page)||1),totalPages);
+  if(!rows.length){
+    el.innerHTML='<div class="lib-empty" style="padding:20px 0">ยังไม่มีประวัติการใช้งาน</div>';
+    if(pager) pager.style.display='none';
+    return;
+  }
+  const start=(auditLogPage-1)*AUDIT_LOG_PAGE_SIZE;
+  const pageRows=rows.slice(start,start+AUDIT_LOG_PAGE_SIZE);
+  // สำคัญ: auditLogList รับเฉพาะ 20 รายการของหน้าปัจจุบันเท่านั้น
+  const noteHtml=note?`<div style="font-size:10px;color:var(--ink-soft);margin-bottom:8px">${escHtml(note)}</div>`:'';
+  el.innerHTML=noteHtml+pageRows.map(x=>{
+    const when=x.ts?new Date(x.ts).toLocaleString('th-TH'):'—';
+    return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
+  }).join('');
+  if(pager){
+    if(totalPages<=1){
+      pager.innerHTML='';
+      pager.style.display='none';
+    }else{
+      pager.style.display='block';
+      pager.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+        <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${auditLogPage-1}" ${auditLogPage<=1?'disabled':''} style="padding:5px 10px;font-size:11px">‹ หน้าก่อน</button>
+        <span style="font-size:11px;color:var(--ink-soft)">หน้า ${auditLogPage} / ${totalPages}</span>
+        <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${auditLogPage+1}" ${auditLogPage>=totalPages?'disabled':''} style="padding:5px 10px;font-size:11px">หน้าถัดไป ›</button>
+      </div>`;
+    }
+  }
+}
+
 async function loadAuditLogs(){
   const el=document.getElementById('auditLogList');
   if(!el || currentUser?.role!=='admin') return;
-  const renderRows=(rows, note='', page=1)=>{
-    rows.sort((a,b)=>b.ts-a.ts);
-    auditLogRowsCache=rows;
-    const totalPages=Math.max(1,Math.ceil(rows.length/AUDIT_LOG_PAGE_SIZE));
-    auditLogPage=Math.min(Math.max(1,page),totalPages);
-    if(!rows.length){el.innerHTML='<div class="lib-empty" style="padding:20px 0">ยังไม่มีประวัติการใช้งาน</div>';return;}
-    const start=(auditLogPage-1)*AUDIT_LOG_PAGE_SIZE;
-    const pageRows=rows.slice(start,start+AUDIT_LOG_PAGE_SIZE);
-    const noteHtml=note?`<div style="font-size:10px;color:var(--ink-soft);margin-bottom:8px">${escHtml(note)}</div>`:'';
-    const navHtml=totalPages>1?`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
-      <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${auditLogPage-1}" ${auditLogPage<=1?'disabled':''} style="padding:5px 10px;font-size:11px">‹ หน้าก่อน</button>
-      <span style="font-size:11px;color:var(--ink-soft)">หน้า ${auditLogPage} / ${totalPages}</span>
-      <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${auditLogPage+1}" ${auditLogPage>=totalPages?'disabled':''} style="padding:5px 10px;font-size:11px">หน้าถัดไป ›</button>
-    </div>`:'';
-    el.innerHTML=noteHtml+pageRows.map(x=>{
-      const when=x.ts?new Date(x.ts).toLocaleString('th-TH'):'—';
-      return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
-    }).join('')+navHtml;
-  };
+  const pager=document.getElementById('auditLogPager');
+  if(pager) pager.style.display='none';
+  el.innerHTML='<div class="lib-empty" style="padding:20px 0">กำลังโหลด...</div>';
   try{
     const snap=await db.collection('auditLogs').orderBy('createdAt','desc').limit(500).get();
-    const rows=snap.docs.map(d=>{
+    auditLogRowsCache=snap.docs.map(d=>{
       const x=d.data()||{};
       return {ts:x.createdAt?.toDate?x.createdAt.toDate().getTime():0,userName:x.userName,userRole:x.userRole,summary:x.summary,action:x.action};
     });
-    renderRows(rows,'',1);
+    renderAuditLogPage(1);
     return;
   }catch(e){
-    // Some deployed Firestore rules do not allow the new auditLogs collection.
-    // Fall back to the existing, permission-safe document/folder history so the
-    // Admin log still works without requiring a rules deployment just to view it.
     console.warn('auditLogs read unavailable; using derived history:',e);
   }
   try{
     const rows=[];
-
-    // Do not read the whole documents collection here. In many deployments
-    // the Firestore rules allow the same folder-scoped queries used by the
-    // Library, but reject an unrestricted documents.get(). Build the fallback
-    // from those permission-safe queries instead.
     const addDocHistory=(d)=>{
       const x=d.data()||{};
       if(x.createdBy || x.createdByName){
@@ -2208,14 +2219,7 @@ async function loadAuditLogs(){
         rows.push({ts,userName:h.changedByName||'—',userRole:'',summary:`แก้ไขเอกสาร "${x.name||'—'}" — ${Array.isArray(h.changes)&&h.changes.length?h.changes.join(', '):'อัปเดตเอกสาร'}`});
       });
     };
-
-    const folderIds=[...new Set((Array.isArray(foldersCache)?foldersCache:[])
-      .filter(f=>f && !f.isSystemFolder && f.id)
-      .map(f=>f.id))];
-
-    // Query one folder at a time, matching the Library's existing Firestore
-    // permission pattern. This also avoids the failed unrestricted read that
-    // caused the Admin page to show "โหลดประวัติไม่สำเร็จ".
+    const folderIds=[...new Set((Array.isArray(foldersCache)?foldersCache:[]).filter(f=>f && !f.isSystemFolder && f.id).map(f=>f.id))];
     for(const fid of folderIds){
       try{
         const snap=await db.collection('documents').where('folderId','==',fid).limit(200).get();
@@ -2224,17 +2228,12 @@ async function loadAuditLogs(){
         console.warn('Document history fallback for folder unavailable:',fid,folderDocErr);
       }
     }
-
-    // Include documents that are not assigned to any folder.
     try{
       const snap=await db.collection('documents').where('folderId','==',null).limit(200).get();
       snap.docs.forEach(addDocHistory);
     }catch(otherDocErr){
       console.warn('Unassigned document history fallback unavailable:',otherDocErr);
     }
-
-    // Folder metadata is already loaded for the Admin Library, so use the
-    // cached records rather than performing another unrestricted folders read.
     (Array.isArray(foldersCache)?foldersCache:[]).forEach(f=>{
       if(!f || f.isSystemFolder) return;
       if(f.createdBy || f.createdByName){
@@ -2246,35 +2245,20 @@ async function loadAuditLogs(){
         rows.push({ts,userName:f.updatedByName||'—',userRole:'',summary:`แก้ไขโฟลเดอร์ "${f.name||'—'}"`});
       }
     });
-
-    renderRows(rows,'แสดงจากประวัติเอกสาร/โฟลเดอร์ เนื่องจากสิทธิ์ Firestore ของ auditLogs ยังไม่เปิด',1);
+    auditLogRowsCache=rows;
+    renderAuditLogPage(1,'แสดงจากประวัติเอกสาร/โฟลเดอร์ เนื่องจากสิทธิ์ Firestore ของ auditLogs ยังไม่เปิด');
   }catch(e){
     console.warn('Derived audit history unavailable:',e);
+    if(pager) pager.style.display='none';
     el.innerHTML=`<div style="font-size:12px;color:var(--danger);padding:10px 0">ไม่สามารถโหลด LOG จากข้อมูลเอกสารได้</div><div style="font-size:11px;color:var(--ink-soft);line-height:1.6">หากต้องการ LOG กลางของทุกคนแบบถาวร ต้องอนุญาตการอ่าน/เขียน collection <b>auditLogs</b> ใน Firestore Rules</div>`;
   }
 }
 
 document.getElementById('auditLogRefreshBtn')?.addEventListener('click',()=>loadAuditLogs());
-document.getElementById('auditLogList')?.addEventListener('click',e=>{
+document.getElementById('auditLogPager')?.addEventListener('click',e=>{
   const btn=e.target.closest('.audit-page-btn');
   if(!btn || btn.disabled) return;
-  const page=Number(btn.dataset.auditPage||1);
-  const totalPages=Math.max(1,Math.ceil(auditLogRowsCache.length/AUDIT_LOG_PAGE_SIZE));
-  if(page<1 || page>totalPages) return;
-  auditLogPage=page;
-  const start=(page-1)*AUDIT_LOG_PAGE_SIZE;
-  const pageRows=auditLogRowsCache.slice().sort((a,b)=>b.ts-a.ts).slice(start,start+AUDIT_LOG_PAGE_SIZE);
-  const el=document.getElementById('auditLogList');
-  if(!el) return;
-  const navHtml=totalPages>1?`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
-    <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${page-1}" ${page<=1?'disabled':''} style="padding:5px 10px;font-size:11px">‹ หน้าก่อน</button>
-    <span style="font-size:11px;color:var(--ink-soft)">หน้า ${page} / ${totalPages}</span>
-    <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${page+1}" ${page>=totalPages?'disabled':''} style="padding:5px 10px;font-size:11px">หน้าถัดไป ›</button>
-  </div>`:'';
-  el.innerHTML=pageRows.map(x=>{
-    const when=x.ts?new Date(x.ts).toLocaleString('th-TH'):'—';
-    return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
-  }).join('')+navHtml;
+  renderAuditLogPage(Number(btn.dataset.auditPage||1));
 });
 
 /* ============================================================
