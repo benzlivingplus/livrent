@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.10">
+<meta name="livrent-version" content="5.10.1">
 <!-- V5.10: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2150,24 +2150,39 @@ async function writeAuditLog(action, entityType, entityId, summary, meta={}){
     if(currentUser.role==='admin' && document.getElementById('auditLogList')) loadAuditLogs();
   }catch(e){ console.warn('Audit log unavailable:',e); }
 }
+let auditLogRowsCache=[];
+let auditLogPage=1;
+const AUDIT_LOG_PAGE_SIZE=20;
+
 async function loadAuditLogs(){
   const el=document.getElementById('auditLogList');
   if(!el || currentUser?.role!=='admin') return;
-  const renderRows=(rows, note='')=>{
+  const renderRows=(rows, note='', page=1)=>{
     rows.sort((a,b)=>b.ts-a.ts);
+    auditLogRowsCache=rows;
+    const totalPages=Math.max(1,Math.ceil(rows.length/AUDIT_LOG_PAGE_SIZE));
+    auditLogPage=Math.min(Math.max(1,page),totalPages);
     if(!rows.length){el.innerHTML='<div class="lib-empty" style="padding:20px 0">ยังไม่มีประวัติการใช้งาน</div>';return;}
-    el.innerHTML=(note?`<div style="font-size:10px;color:var(--ink-soft);margin-bottom:8px">${escHtml(note)}</div>`:'')+rows.slice(0,100).map(x=>{
+    const start=(auditLogPage-1)*AUDIT_LOG_PAGE_SIZE;
+    const pageRows=rows.slice(start,start+AUDIT_LOG_PAGE_SIZE);
+    const noteHtml=note?`<div style="font-size:10px;color:var(--ink-soft);margin-bottom:8px">${escHtml(note)}</div>`:'';
+    const navHtml=totalPages>1?`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+      <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${auditLogPage-1}" ${auditLogPage<=1?'disabled':''} style="padding:5px 10px;font-size:11px">‹ หน้าก่อน</button>
+      <span style="font-size:11px;color:var(--ink-soft)">หน้า ${auditLogPage} / ${totalPages}</span>
+      <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${auditLogPage+1}" ${auditLogPage>=totalPages?'disabled':''} style="padding:5px 10px;font-size:11px">หน้าถัดไป ›</button>
+    </div>`:'';
+    el.innerHTML=noteHtml+pageRows.map(x=>{
       const when=x.ts?new Date(x.ts).toLocaleString('th-TH'):'—';
       return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
-    }).join('');
+    }).join('')+navHtml;
   };
   try{
-    const snap=await db.collection('auditLogs').orderBy('createdAt','desc').limit(100).get();
+    const snap=await db.collection('auditLogs').orderBy('createdAt','desc').limit(500).get();
     const rows=snap.docs.map(d=>{
       const x=d.data()||{};
       return {ts:x.createdAt?.toDate?x.createdAt.toDate().getTime():0,userName:x.userName,userRole:x.userRole,summary:x.summary,action:x.action};
     });
-    renderRows(rows);
+    renderRows(rows,'',1);
     return;
   }catch(e){
     // Some deployed Firestore rules do not allow the new auditLogs collection.
@@ -2232,7 +2247,7 @@ async function loadAuditLogs(){
       }
     });
 
-    renderRows(rows,'แสดงจากประวัติเอกสาร/โฟลเดอร์ เนื่องจากสิทธิ์ Firestore ของ auditLogs ยังไม่เปิด');
+    renderRows(rows,'แสดงจากประวัติเอกสาร/โฟลเดอร์ เนื่องจากสิทธิ์ Firestore ของ auditLogs ยังไม่เปิด',1);
   }catch(e){
     console.warn('Derived audit history unavailable:',e);
     el.innerHTML=`<div style="font-size:12px;color:var(--danger);padding:10px 0">ไม่สามารถโหลด LOG จากข้อมูลเอกสารได้</div><div style="font-size:11px;color:var(--ink-soft);line-height:1.6">หากต้องการ LOG กลางของทุกคนแบบถาวร ต้องอนุญาตการอ่าน/เขียน collection <b>auditLogs</b> ใน Firestore Rules</div>`;
@@ -2240,6 +2255,27 @@ async function loadAuditLogs(){
 }
 
 document.getElementById('auditLogRefreshBtn')?.addEventListener('click',()=>loadAuditLogs());
+document.getElementById('auditLogList')?.addEventListener('click',e=>{
+  const btn=e.target.closest('.audit-page-btn');
+  if(!btn || btn.disabled) return;
+  const page=Number(btn.dataset.auditPage||1);
+  const totalPages=Math.max(1,Math.ceil(auditLogRowsCache.length/AUDIT_LOG_PAGE_SIZE));
+  if(page<1 || page>totalPages) return;
+  auditLogPage=page;
+  const start=(page-1)*AUDIT_LOG_PAGE_SIZE;
+  const pageRows=auditLogRowsCache.slice().sort((a,b)=>b.ts-a.ts).slice(start,start+AUDIT_LOG_PAGE_SIZE);
+  const el=document.getElementById('auditLogList');
+  if(!el) return;
+  const navHtml=totalPages>1?`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+    <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${page-1}" ${page<=1?'disabled':''} style="padding:5px 10px;font-size:11px">‹ หน้าก่อน</button>
+    <span style="font-size:11px;color:var(--ink-soft)">หน้า ${page} / ${totalPages}</span>
+    <button type="button" class="btn btn-secondary audit-page-btn" data-audit-page="${page+1}" ${page>=totalPages?'disabled':''} style="padding:5px 10px;font-size:11px">หน้าถัดไป ›</button>
+  </div>`:'';
+  el.innerHTML=pageRows.map(x=>{
+    const when=x.ts?new Date(x.ts).toLocaleString('th-TH'):'—';
+    return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
+  }).join('')+navHtml;
+});
 
 /* ============================================================
    AUTH
