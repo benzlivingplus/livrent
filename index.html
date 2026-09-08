@@ -1045,7 +1045,7 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 .rental-summary-card.rent-collected .rental-progress span{display:block;height:100%;border-radius:999px;background:#2196f3;transition:width .25s ease;}
 .rental-summary-card.rent-collected .rental-percent{font-size:12px;font-weight:800;color:#1976d2;margin-top:4px;text-align:right;}
 .rental-expiry-summary-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
-.rental-expiry-summary-item{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;}
+.rental-expiry-summary-item{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rental-progress{height:7px;background:#e9ecef;border-radius:99px;overflow:hidden;margin-top:7px;}
 .rental-progress > span{display:block;height:100%;width:0;background:#2196f3;border-radius:99px;transition:width .2s ease;}
 .rental-percent{font-size:11px;font-weight:800;color:#1976d2;margin-top:4px;}
@@ -4409,7 +4409,7 @@ function openRentalFolderById(fid){currentParentViewId=null;currentFolderId=fid;
 async function loadRentalCalendar(){
   const y=_rentalCalendarMonth.getFullYear(),m=_rentalCalendarMonth.getMonth();
   const label=document.getElementById('rentalMonthLabel'); if(label)label.textContent=monthLabel(y,m);
-  const rents=(foldersCache||[]).filter(f=>!f.isSystemFolder);
+  const rents=(foldersCache||[]).filter(f=>isChildFolder(f) && String(f.type||'rent')==='rent');
 
   let allDocs=[];
   try{
@@ -4465,7 +4465,7 @@ async function loadRentalCalendar(){
       hasBillingRule:!!folder.billingDay,
       hasMonthDocument:!!(inv||receipt)
     };
-  }).filter(r=>r.hasBillingRule||r.hasMonthDocument);
+  });
 
   const expiry=rents.filter(f=>{
     if(!f.contractEnd)return false;
