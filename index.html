@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.9.9">
-<!-- V5.9.9: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
+<meta name="livrent-version" content="5.10">
+<!-- V5.10: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2153,15 +2153,89 @@ async function writeAuditLog(action, entityType, entityId, summary, meta={}){
 async function loadAuditLogs(){
   const el=document.getElementById('auditLogList');
   if(!el || currentUser?.role!=='admin') return;
-  try{
-    const snap=await db.collection('auditLogs').orderBy('createdAt','desc').limit(100).get();
-    if(!snap.docs.length){el.innerHTML='<div class="lib-empty" style="padding:20px 0">ยังไม่มีประวัติการใช้งาน</div>';return;}
-    el.innerHTML=snap.docs.map(d=>{
-      const x=d.data()||{}; const when=x.createdAt?.toDate?x.createdAt.toDate().toLocaleString('th-TH'):'—';
+  const renderRows=(rows, note='')=>{
+    rows.sort((a,b)=>b.ts-a.ts);
+    if(!rows.length){el.innerHTML='<div class="lib-empty" style="padding:20px 0">ยังไม่มีประวัติการใช้งาน</div>';return;}
+    el.innerHTML=(note?`<div style="font-size:10px;color:var(--ink-soft);margin-bottom:8px">${escHtml(note)}</div>`:'')+rows.slice(0,100).map(x=>{
+      const when=x.ts?new Date(x.ts).toLocaleString('th-TH'):'—';
       return `<div class="audit-item"><div class="audit-main"><span class="audit-who">${escHtml(x.userName||'—')}</span> <span style="font-size:10px;color:var(--ink-soft)">(${escHtml(x.userRole||'')})</span><div style="margin-top:3px">${escHtml(x.summary||x.action||'—')}</div></div><div class="audit-time">${escHtml(when)}</div></div>`;
     }).join('');
+  };
+  try{
+    const snap=await db.collection('auditLogs').orderBy('createdAt','desc').limit(100).get();
+    const rows=snap.docs.map(d=>{
+      const x=d.data()||{};
+      return {ts:x.createdAt?.toDate?x.createdAt.toDate().getTime():0,userName:x.userName,userRole:x.userRole,summary:x.summary,action:x.action};
+    });
+    renderRows(rows);
+    return;
   }catch(e){
-    el.innerHTML=`<div style="font-size:11px;color:var(--danger);padding:10px 0">โหลดประวัติไม่สำเร็จ: ${escHtml(e.message)}</div>`;
+    // Some deployed Firestore rules do not allow the new auditLogs collection.
+    // Fall back to the existing, permission-safe document/folder history so the
+    // Admin log still works without requiring a rules deployment just to view it.
+    console.warn('auditLogs read unavailable; using derived history:',e);
+  }
+  try{
+    const rows=[];
+
+    // Do not read the whole documents collection here. In many deployments
+    // the Firestore rules allow the same folder-scoped queries used by the
+    // Library, but reject an unrestricted documents.get(). Build the fallback
+    // from those permission-safe queries instead.
+    const addDocHistory=(d)=>{
+      const x=d.data()||{};
+      if(x.createdBy || x.createdByName){
+        const ts=x.createdAt?.toDate?x.createdAt.toDate().getTime():0;
+        rows.push({ts,userName:x.createdByName||'—',userRole:'',summary:`สร้างเอกสาร "${x.name||'—'}"`});
+      }
+      (Array.isArray(x.history)?x.history:[]).forEach(h=>{
+        const ts=h.changedAt?new Date(h.changedAt).getTime():0;
+        rows.push({ts,userName:h.changedByName||'—',userRole:'',summary:`แก้ไขเอกสาร "${x.name||'—'}" — ${Array.isArray(h.changes)&&h.changes.length?h.changes.join(', '):'อัปเดตเอกสาร'}`});
+      });
+    };
+
+    const folderIds=[...new Set((Array.isArray(foldersCache)?foldersCache:[])
+      .filter(f=>f && !f.isSystemFolder && f.id)
+      .map(f=>f.id))];
+
+    // Query one folder at a time, matching the Library's existing Firestore
+    // permission pattern. This also avoids the failed unrestricted read that
+    // caused the Admin page to show "โหลดประวัติไม่สำเร็จ".
+    for(const fid of folderIds){
+      try{
+        const snap=await db.collection('documents').where('folderId','==',fid).limit(200).get();
+        snap.docs.forEach(addDocHistory);
+      }catch(folderDocErr){
+        console.warn('Document history fallback for folder unavailable:',fid,folderDocErr);
+      }
+    }
+
+    // Include documents that are not assigned to any folder.
+    try{
+      const snap=await db.collection('documents').where('folderId','==',null).limit(200).get();
+      snap.docs.forEach(addDocHistory);
+    }catch(otherDocErr){
+      console.warn('Unassigned document history fallback unavailable:',otherDocErr);
+    }
+
+    // Folder metadata is already loaded for the Admin Library, so use the
+    // cached records rather than performing another unrestricted folders read.
+    (Array.isArray(foldersCache)?foldersCache:[]).forEach(f=>{
+      if(!f || f.isSystemFolder) return;
+      if(f.createdBy || f.createdByName){
+        const ts=f.createdAt?.toDate?f.createdAt.toDate().getTime():0;
+        rows.push({ts,userName:f.createdByName||'—',userRole:'',summary:`สร้างโฟลเดอร์ "${f.name||'—'}"`});
+      }
+      if(f.updatedBy || f.updatedByName){
+        const ts=f.updatedAt?.toDate?f.updatedAt.toDate().getTime():0;
+        rows.push({ts,userName:f.updatedByName||'—',userRole:'',summary:`แก้ไขโฟลเดอร์ "${f.name||'—'}"`});
+      }
+    });
+
+    renderRows(rows,'แสดงจากประวัติเอกสาร/โฟลเดอร์ เนื่องจากสิทธิ์ Firestore ของ auditLogs ยังไม่เปิด');
+  }catch(e){
+    console.warn('Derived audit history unavailable:',e);
+    el.innerHTML=`<div style="font-size:12px;color:var(--danger);padding:10px 0">ไม่สามารถโหลด LOG จากข้อมูลเอกสารได้</div><div style="font-size:11px;color:var(--ink-soft);line-height:1.6">หากต้องการ LOG กลางของทุกคนแบบถาวร ต้องอนุญาตการอ่าน/เขียน collection <b>auditLogs</b> ใน Firestore Rules</div>`;
   }
 }
 
@@ -2244,7 +2318,9 @@ function showApp(){
       if(userMgmt) userMgmt.style.display='';
       loadUsers();
     }
-    loadAuditLogs();
+    // Audit log fallback needs foldersCache, so load it first and then render
+    // the Admin log. This avoids the initial race where loadAuditLogs() ran
+    // before loadFolders() had populated the cache.
   }
   state = makeDefaultState();
   state.createdByName = currentUser.displayName;
@@ -2255,7 +2331,12 @@ function showApp(){
   syncDocLangButtons();
   fullRender();
   switchTab('library', false);
-  loadFolders().then(()=>refreshRentalNotificationBadge()).catch(()=>{});
+  loadFolders().then(()=>{
+    refreshRentalNotificationBadge();
+    if(currentUser?.role==='admin') loadAuditLogs();
+  }).catch(()=>{
+    if(currentUser?.role==='admin') loadAuditLogs();
+  });
 }
 
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
@@ -3189,6 +3270,10 @@ let _docPageCursor = null;
 let _docHasMore = false;
 let _docLoadingMore = false;
 
+// Optimistic UI guard: Firestore can briefly return a cached snapshot after a delete.
+// Keep deleted IDs hidden until the next full page/session refresh.
+const _locallyDeletedDocIds = new Set();
+
 async function queryLibraryDocuments(reset=true){
   const isAll=currentFolderId==='__all__';
   const isParentView=currentFolderId==='__parent_view__' && !!currentParentViewId;
@@ -3202,6 +3287,8 @@ async function queryLibraryDocuments(reset=true){
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
+    docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
+    docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
   }
@@ -3215,6 +3302,7 @@ async function queryLibraryDocuments(reset=true){
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
+    docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
   }
@@ -3225,6 +3313,7 @@ async function queryLibraryDocuments(reset=true){
     const snap=await q.get();
     docs=snap.docs.map(d=>({id:d.id,...d.data()}));
     _docPageCursor=snap.docs.length?snap.docs[snap.docs.length-1]:null;
+    docs=docs.filter(d=>!_locallyDeletedDocIds.has(d.id));
     _docHasMore=snap.docs.length===_docPageSize;
     return docs;
   }
@@ -3452,9 +3541,9 @@ async function handleDocAction(act, id, name){
     const latestRec = {id, ...latestSnap.data()};
     const isAdminNow = currentUser?.role==='admin';
     const allowedNow = isAdminNow || canStaffDirectDelete(latestRec);
+    const requestName = latestRec.name||name||'เอกสาร';
     if(!allowedNow){
       document.getElementById('docPreviewModal').classList.add('hidden');
-      const requestName = latestRec.name||name||'เอกสาร';
       showConfirm('หมดเวลาลบโดยตรง','เอกสารนี้เกิน 5 นาทีแล้ว จึงไม่สามารถลบโดยตรงได้ ต้องส่งคำขอให้ Admin อนุมัติ', async ()=>{
         await db.collection('deleteRequests').add({
           docId:id, docName:requestName, requestedBy:currentUser.uid, requestedByName:currentUser.displayName,
@@ -3469,13 +3558,32 @@ async function handleDocAction(act, id, name){
     showConfirm('ลบเอกสาร','ต้องการลบเอกสารนี้ใช่ไหม? (ลบแล้วกู้คืนไม่ได้)', async ()=>{
       const deletedFolderId=latestRec.folderId||null;
       await db.collection('documents').doc(id).delete();
-      if(deletedFolderId) await adjustFolderDocCount(deletedFolderId,-1);
-      else adjustOtherDocCount(-1);
-      await writeAuditLog('document_delete','document',id,`ลบเอกสาร "${requestName||''}"`,{folderId:deletedFolderId});
+      _locallyDeletedDocIds.add(id);
+
+      // Remove the document from the current UI immediately after Firestore
+      // confirms the delete. Refreshing counters, writing audit history, or
+      // reloading folders must never be allowed to delay/block this visual
+      // update.
+      document.querySelectorAll(`.doc-card[data-id="${id}"]`).forEach(card=>card.remove());
+      const remainingCards=document.querySelectorAll('#docList .doc-card');
+      if(!remainingCards.length && !document.querySelector('#docList [data-open-documents]')){
+        const empty=document.createElement('div');
+        empty.className='lib-empty';
+        empty.textContent=t('noDocuments')||'ไม่มีเอกสารในโฟลเดอร์นี้';
+        document.getElementById('docList')?.appendChild(empty);
+      }
+
+      // These are secondary updates. Each one is isolated so a permission or
+      // network problem cannot put the deleted card back on screen.
+      try{
+        if(deletedFolderId) await adjustFolderDocCount(deletedFolderId,-1);
+        else adjustOtherDocCount(-1);
+      }catch(countErr){ console.warn('Delete count refresh:',countErr); }
+      try{ await writeAuditLog('document_delete','document',id,`ลบเอกสาร "${requestName||''}"`,{folderId:deletedFolderId}); }catch(auditErr){ console.warn('Delete audit:',auditErr); }
       window._livrentTotalDocCount=Math.max(0,Number(window._livrentTotalDocCount||localStorage.getItem('livrent_total_doc_count')||0)-1); localStorage.setItem('livrent_total_doc_count',String(window._livrentTotalDocCount));
       if(currentDocId===id){ currentDocId=null; state=makeDefaultState(); fullRender(); }
-      await loadFolders();
-      await loadDocList();
+      try{ await loadFolders(); }catch(folderErr){ console.warn('Delete folder refresh:',folderErr); }
+      try{ await loadDocList(); }catch(listErr){ console.warn('Delete document list refresh:',listErr); }
     });
   }
   if(act==='reqdel'){
@@ -3739,10 +3847,19 @@ function listenDeleteRequests(){
     }).join('');
     listEl.querySelectorAll('.approve-btn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
-        await db.collection('documents').doc(btn.dataset.docid).delete();
-        await db.collection('deleteRequests').doc(btn.dataset.reqid).update({status:'approved'});
-        if(currentDocId===btn.dataset.docid){ currentDocId=null; state=makeDefaultState(); fullRender(); }
-        loadDocList();
+        const docId=btn.dataset.docid;
+        try{
+          await db.collection('documents').doc(docId).delete();
+          _locallyDeletedDocIds.add(docId);
+          // Remove the approved document from the visible Library immediately.
+          document.querySelectorAll(`.doc-card[data-id="${docId}"]`).forEach(card=>card.remove());
+          await db.collection('deleteRequests').doc(btn.dataset.reqid).update({status:'approved'});
+          if(currentDocId===docId){ currentDocId=null; state=makeDefaultState(); fullRender(); }
+          try{ await loadFolders(); }catch(e){ console.warn('Approved delete folder refresh:',e); }
+          try{ await loadDocList(); }catch(e){ console.warn('Approved delete list refresh:',e); }
+        }catch(e){
+          alert('ลบเอกสารไม่สำเร็จ: '+e.message);
+        }
       });
     });
     listEl.querySelectorAll('.reject-btn').forEach(btn=>{
