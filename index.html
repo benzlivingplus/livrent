@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.9.8-FIX2">
-<!-- V5.9.8 FIX2: notification dashboard exact 4+3 layout, billing-day number, sent pills, admin root-folder creation -->
+<meta name="livrent-version" content="5.9.9">
+<!-- V5.9.9: rent-only UI, button polish, collection status colors, shared document editing, admin audit log -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1013,9 +1013,12 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 .folder-level-2{background:rgba(122,16,32,.025);}
 .folder-level-3{background:rgba(122,16,32,.015);color:var(--ink-soft);}
 .folder-level-3.active{color:var(--maroon);background:#FBF3F2;}
-.folder-tool{background:none;border:0;cursor:pointer;font-size:11px;color:var(--ink-soft);padding:2px 3px;line-height:1;flex-shrink:0;}
-.folder-tool:hover{color:var(--maroon);}
-.folder-add-child{font-size:14px;color:var(--maroon);}
+.folder-tool{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:26px;background:#fff;border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:13px;color:var(--ink-soft);padding:0 6px;line-height:1;flex-shrink:0;font-family:inherit;transition:background .15s,border-color .15s,color .15s,transform .08s;}
+.folder-tool:hover{color:var(--maroon);border-color:var(--maroon);background:#FBF3F2;}
+.folder-tool:active{transform:translateY(1px);}
+.folder-add-child{min-width:24px;width:24px;height:24px;padding:0;border-color:var(--maroon);border-radius:50%;background:var(--maroon);color:#fff;font-size:16px;font-weight:700;}
+.folder-add-child:hover{background:var(--maroon-deep);border-color:var(--maroon-deep);color:#fff;}
+.folder-action-btn{font-size:13px;}
 .folder-root-add-btn{width:24px;height:24px;border:0;border-radius:50%;background:var(--maroon);color:#fff;font-size:17px;line-height:24px;padding:0;cursor:pointer;font-family:inherit;}
 .folder-root-add-btn:hover{filter:brightness(1.08);}
 
@@ -1038,12 +1041,14 @@ html[data-ui="desktop"] .admin-grid { grid-template-columns:1fr 1fr !important; 
 .rental-summary-card.rent-expiry{grid-column:3 / span 2;grid-row:2;}
 .rental-summary-card .n{font-size:22px;font-weight:800;color:var(--maroon);}
 .rental-summary-card .l{font-size:11px;color:var(--ink-soft);margin-top:2px;}
-.rental-summary-card.rent-total{border-left:4px solid #55c947;}
-.rental-summary-card.rent-collected{border-left:4px solid #2196f3;}
-.rental-summary-card.rent-collected .n{color:#1976d2;}
-.rental-summary-card.rent-collected .rental-progress{height:7px;margin-top:8px;background:#e9eef3;border-radius:999px;overflow:hidden;}
-.rental-summary-card.rent-collected .rental-progress span{display:block;height:100%;border-radius:999px;background:#2196f3;transition:width .25s ease;}
-.rental-summary-card.rent-collected .rental-percent{font-size:12px;font-weight:800;color:#1976d2;margin-top:4px;text-align:right;}
+.rental-summary-card.rent-total{border-left:0;}
+.rental-summary-card.rent-collected{border-left:0;}
+.rental-summary-card.rent-collected .n{color:#d66a78;}
+.rental-summary-card.rent-collected .rental-progress{height:7px;margin-top:8px;background:#f1e6e8;border-radius:999px;overflow:hidden;}
+.rental-summary-card.rent-collected .rental-progress span{display:block;height:100%;border-radius:999px;background:#d66a78;transition:width .25s ease;}
+.rental-summary-card.rent-collected .rental-percent{font-size:12px;font-weight:800;color:#d66a78;margin-top:4px;text-align:right;}
+.rental-summary-card.rent-collected.collection-complete .n,.rental-summary-card.rent-collected.collection-complete .rental-percent{color:var(--maroon);}
+.rental-summary-card.rent-collected.collection-complete .rental-progress span{background:var(--maroon);}
 .rental-expiry-summary-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
 .rental-expiry-summary-item{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rental-progress{height:7px;background:#e9ecef;border-radius:99px;overflow:hidden;margin-top:7px;}
@@ -1424,6 +1429,13 @@ body.is-admin .folder-root-add-btn{display:inline-flex !important;align-items:ce
         <h3>📋 คำขอลบเอกสาร <span class="tab-badge" id="reqBadge2" style="display:none">0</span></h3>
         <div id="deleteRequestsList"><div class="lib-empty" style="padding:30px 0">ไม่มีคำขอรอดำเนินการ</div></div>
       </div>
+      <div class="admin-section" id="adminAuditLog">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <h3 style="margin:0;flex:1">📜 LOG การใช้งาน</h3>
+          <button type="button" class="btn btn-secondary" id="auditLogRefreshBtn" style="padding:6px 9px;font-size:11px">รีเฟรช</button>
+        </div>
+        <div id="auditLogList"><div class="lib-empty" style="padding:20px 0">กำลังโหลด...</div></div>
+      </div>
       <div class="admin-section" id="adminUserManagement">
         <h3>👥 ผู้ใช้งาน</h3>
         <div id="userList"></div>
@@ -1579,10 +1591,6 @@ body.is-admin .folder-root-add-btn{display:inline-flex !important;align-items:ce
       <label data-i18n="moveToParent">โฟลเดอร์หลัก</label>
       <select id="folderParentInput" style="margin-bottom:8px"></select>
     </div>
-    <label>ประเภท</label>
-    <select id="folderTypeInput" style="margin-bottom:8px">
-      <option value="rent">เช่า</option>
-    </select>
     <label>รายละเอียด / หมายเหตุ</label>
     <textarea id="folderDescInput" rows="2" placeholder="รายละเอียดเพิ่มเติม..." style="margin-bottom:10px"></textarea>
     <div id="folderContractSection" style="border-top:1px dashed var(--line);padding-top:10px;margin-top:2px">
@@ -2157,6 +2165,8 @@ async function loadAuditLogs(){
   }
 }
 
+document.getElementById('auditLogRefreshBtn')?.addEventListener('click',()=>loadAuditLogs());
+
 /* ============================================================
    AUTH
    ============================================================ */
@@ -2453,7 +2463,6 @@ function renderFolderList(){
       html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
         <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span>
         <span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}
-        <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
       </div>`;
     });
   }else{
@@ -2480,7 +2489,6 @@ function renderFolderList(){
         const edit=canEditChild?`<button class="folder-tool folder-action-btn" data-folder-action="${child.id}" title="จัดการโฟลเดอร์">⚙️</button>`:'';
         html+=`<div class="folder-item folder-level-2${currentFolderId===child.id?' active':''}" data-fid="${child.id}" style="justify-content:flex-start;padding-left:30px">
           <span class="folder-icon">📂</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escName(child.name)}</span><span style="font-size:10px;color:var(--ink-soft);margin-right:2px">(${cnt})</span>${edit}
-          <span class="folder-type-tag ${FOLDER_TYPES[child.type]?.cls||'ft-all'}">${t(child.type)||FOLDER_TYPES[child.type]?.label||child.type||''}</span>
         </div>`;
       });
     }
@@ -2648,11 +2656,6 @@ function populateFolderSelect(){
   });
 }
 
-function updateFolderContractVisibility(){
-  const type=document.getElementById('folderTypeInput')?.value;
-  const section=document.getElementById('folderContractSection');
-  if(section) section.style.display=(_folderModalMode==='child' && type==='rent')?'':'none';
-}
 function configureFolderModal(mode,parentId=null){
   _folderModalMode=mode;
   _folderParentId=parentId;
@@ -2664,14 +2667,11 @@ function configureFolderModal(mode,parentId=null){
     parentInput.value=parentId||'';
   }
   if(parentWrap) parentWrap.style.display=(mode==='child' && !_editingFolderId)?'':'none';
-  const typeInput=document.getElementById('folderTypeInput');
   const desc=document.getElementById('folderDescInput');
   const contract=document.getElementById('folderContractSection');
-  const typeLabel=typeInput?.previousElementSibling;
   const descLabel=desc?.previousElementSibling;
   const child=mode==='child';
-  [typeLabel,typeInput,descLabel,desc,contract].forEach(el=>{if(el)el.style.display=child?'':'none';});
-  updateFolderContractVisibility();
+  [descLabel,desc,contract].forEach(el=>{if(el)el.style.display=child?'':'none';});
 }
 async function createDocumentsSystemFolder(childId){
   if(!childId) return null;
@@ -2763,7 +2763,6 @@ function openNewParentFolder(){
   document.getElementById('folderModalTitle').textContent=t('createFolder')||'สร้างโฟลเดอร์';
   document.getElementById('folderNameInput').value='';
   if(document.getElementById('folderParentInput')) document.getElementById('folderParentInput').value='';
-  document.getElementById('folderTypeInput').value='rent';
   document.getElementById('folderDescInput').value='';
   document.getElementById('folderContractStart').value='';
   document.getElementById('folderContractEnd').value='';
@@ -2783,7 +2782,6 @@ function openNewChildFolder(parentId){
   _editingFolderId=null; configureFolderModal('child',parentId);
   document.getElementById('folderModalTitle').textContent=(t('createFolder')||'สร้างโฟลเดอร์')+' — '+p.name;
   document.getElementById('folderNameInput').value='';
-  document.getElementById('folderTypeInput').value='rent';
   document.getElementById('folderDescInput').value='';
   document.getElementById('folderContractStart').value='';
   document.getElementById('folderContractEnd').value='';
@@ -2803,7 +2801,6 @@ function openFolderEdit(fid){
   document.getElementById('folderModalTitle').textContent=(t('editFolder')||'แก้ไขโฟลเดอร์')+(f.parentId?` — ${foldersCache.find(x=>x.id===f.parentId)?.name||''}`:'');
   document.getElementById('folderNameInput').value=f.name||'';
   if(document.getElementById('folderParentInput')) document.getElementById('folderParentInput').value=f.parentId||'';
-  document.getElementById('folderTypeInput').value=f.type||'rent';
   document.getElementById('folderDescInput').value=f.desc||'';
   document.getElementById('folderContractStart').value=f.contractStart||'';
   document.getElementById('folderContractEnd').value=f.contractEnd||'';
@@ -2962,7 +2959,6 @@ function nextBillingDate(folder){
   return d;
 }
 function isoLocal(d){return d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';}
-function folderTypeLabel(type){return FOLDER_TYPES[type]?.label||type||'—';}
 function openFolderInfo(){
   let f=currentLibraryFolder();
   if(!f){alert('กรุณาเลือกโฟลเดอร์ก่อน');return;}
@@ -2980,9 +2976,8 @@ function openFolderInfo(){
   document.getElementById('folderInfoTitle').textContent=f.name||'ข้อมูลโฟลเดอร์';
   body.innerHTML=`
     <div class="info-chip">📂 ${escHtml(f.name||'—')}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px">
       <div class="card" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--ink-soft)">โฟลเดอร์หลัก</div><b>${escHtml(parent?.name||'—')}</b></div>
-      <div class="card" style="padding:10px;margin:0"><div style="font-size:10px;color:var(--ink-soft)">ประเภท</div><b>${escHtml(folderTypeLabel(f.type))}</b></div>
     </div>
     <div class="card" style="padding:12px;margin:10px 0 0">
       <h3 style="margin-bottom:8px">📄 สัญญาเช่า</h3>
@@ -3023,7 +3018,6 @@ document.getElementById('folderFileInput')?.addEventListener('change',e=>{upload
 
 
 document.getElementById('folderModalCancel').addEventListener('click',()=>document.getElementById('folderModal').classList.add('hidden'));
-document.getElementById('folderTypeInput').addEventListener('change',updateFolderContractVisibility);
 
 document.getElementById('folderModalConfirm').addEventListener('click',async()=>{
   if(!currentUser || !['admin','staff'].includes(currentUser.role)){
@@ -3162,7 +3156,7 @@ async function saveDocument(){
       const history = [...(existing.history||[]), histEntry].slice(-50);
       await ref.update({ folderId, name:fileName, data:stateClone, updatedBy:currentUser.uid, updatedByName:currentUser.displayName, updatedAt:now, history });
       if(oldFolderId!==folderId){ if(oldFolderId) await adjustFolderDocCount(oldFolderId,-1); if(folderId) await adjustFolderDocCount(folderId,1); }
-      await writeAuditLog('document_update','document',currentDocId,`แก้ไขเอกสาร "${fileName}"`,{oldFolderId,newFolderId:folderId});
+      await writeAuditLog('document_update','document',currentDocId,`แก้ไขเอกสาร "${fileName}"`,{oldFolderId,newFolderId:folderId,changes:changedFields});
     } else {
       stateClone.createdByName = currentUser.displayName;
       const histEntry = { changedBy:currentUser.uid, changedByName:currentUser.displayName, changedAt:new Date().toISOString(), changes:['__created_new_document__'] };
@@ -3283,7 +3277,7 @@ async function loadDocList(keepExisting=false,loadMore=false){
       let delBtn='';
       if(isAdmin||canDirectDelete) delBtn=`<button data-act="del" data-id="${rec.id}" class="del-btn">${t('cardDel')}</button>`;
       else delBtn=`<button data-act="reqdel" data-id="${rec.id}" data-name="${escAttr(rec.name)}" class="req-del-btn">${t('cardReqDel')}</button>`;
-      const editBtn=(isAdmin||isOwn)?`<button data-act="edit" data-id="${rec.id}">${t('cardEdit')}</button>`:'';
+      const editBtn=`<button data-act="edit" data-id="${rec.id}">${t('cardEdit')}</button>`;
       // Edit History is Admin-only. Staff must never receive this button.
       const histBtn=(isAdmin && !isStaff)?`<button data-act="hist" data-id="${rec.id}">${t('cardHist')}</button>`:'';
       const isSent=!!rec.sentStatus;
@@ -3356,7 +3350,7 @@ async function handleDocAction(act, id, name){
     const isAdmin = currentUser.role==='admin';
     const isOwn = rec.createdBy===currentUser.uid;
     const canDirectDelete = isAdmin || canStaffDirectDelete(rec);
-    document.getElementById('dpEditBtn').style.display=(isAdmin||isOwn)?'':'none';
+    document.getElementById('dpEditBtn').style.display='';
     // สำคัญ: Staff ต้องเป็นเจ้าของเอกสาร และสร้างมาไม่เกิน 5 นาที จึงลบตรงได้
     document.getElementById('dpDelBtn').textContent=canDirectDelete?t('cardDel'):t('cardReqDel');
     document.getElementById('dpMoveWrap').style.display='none';
@@ -4306,7 +4300,7 @@ function switchTab(tab, pushState=true){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(tab+'View').classList.add('active');
   if(tab==='library') loadDocList();
-  if(tab==='admin' && currentUser?.role==='admin' && currentUser?.isOwner) loadUsers();
+  if(tab==='admin' && currentUser?.role==='admin'){ loadAuditLogs(); if(currentUser?.isOwner) loadUsers(); }
   if(tab==='editor') setTimeout(scalePreview,100);
   if(tab==='stats') loadStats();
   if(tab==='notifications') loadRentalCalendar();
@@ -4501,7 +4495,7 @@ async function loadRentalCalendar(){
       <div class="n">${fmt(totalRent)} ฿</div>
       <div class="l">ค่าเช่าทั้งหมด · ${billingRows.length} รายการ</div>
     </div>
-    <div class="rental-summary-card rent-collected">
+    <div class="rental-summary-card rent-collected${collectionPct>=100?' collection-complete':''}">
       <div class="n">${fmt(collectedRent)} ฿</div>
       <div class="l">ค่าเช่าที่เก็บได้แล้ว</div>
       <div class="rental-progress" aria-label="${collectionPct.toFixed(0)}%"><span style="width:${collectionPct.toFixed(2)}%"></span></div>
