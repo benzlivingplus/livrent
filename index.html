@@ -3406,25 +3406,14 @@ async function saveDocument(){
   const stateClone = JSON.parse(JSON.stringify(state));
   const now = firebase.firestore.FieldValue.serverTimestamp();
   try {
-    // Logo files are kept in Firebase Storage. Firestore stores only the download URL.
-    // This prevents File/Blob-like nested data or oversized base64 payloads from being
-    // written into the document while keeping the live preview unchanged.
+    // Keep the logo as a compact data URL in Firestore. Do NOT upload it to Firebase Storage
+    // here because Storage rules may not allow document/user logo paths. The selected image
+    // is resized/compressed when chosen, so the value remains small and Firestore-safe.
     if(stateClone.brandLogo && /^data:image\//i.test(stateClone.brandLogo)){
-      const match = stateClone.brandLogo.match(/^data:([^;]+);base64,(.+)$/);
-      if(!match) throw new Error('รูปโลโก้ไม่ถูกต้อง');
-      const contentType = match[1] || 'image/png';
-      const base64 = match[2];
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-      const blob = new Blob([bytes], {type:contentType});
-      const ext = (contentType.split('/')[1] || 'png').replace(/[^a-z0-9.+-]/gi,'');
-      const safeUid = String(currentUser.uid||'user').replace(/[^a-zA-Z0-9_-]/g,'_');
-      const safeDoc = String(currentDocId||('new_'+Date.now())).replace(/[^a-zA-Z0-9_-]/g,'_');
-      const path = `documents/${safeUid}/logos/${safeDoc}_${Date.now()}.${ext}`;
-      const uploadSnap = await storage.ref(path).put(blob, {contentType});
-      stateClone.brandLogo = await uploadSnap.ref.getDownloadURL();
-      stateClone.brandLogoStoragePath = path;
+      if(stateClone.brandLogo.length > 900000){
+        throw new Error('ไฟล์โลโก้มีขนาดใหญ่เกินไป กรุณาเลือกโลโก้ที่เล็กกว่า');
+      }
+      stateClone.brandLogoStoragePath = firebase.firestore.FieldValue.delete();
     }
     if(currentDocId){
       const ref = db.collection('documents').doc(currentDocId);
@@ -4285,7 +4274,31 @@ document.getElementById('bankName').addEventListener('input',e=>{state.bankName=
 document.getElementById('accName').addEventListener('input',e=>{state.accName=e.target.value;renderPreview();});
 document.getElementById('accNumber').addEventListener('input',e=>{state.accNumber=e.target.value;renderPreview();});
 document.getElementById('showBrand').addEventListener('change',e=>{ state.showBrand=e.target.checked; document.getElementById('brandFieldsWrap').style.display=state.showBrand?'block':'none'; renderPreview(); });
-document.getElementById('brandLogoInput').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f){state.brandLogo='';renderPreview();return;} const r=new FileReader(); r.onload=ev=>{state.brandLogo=ev.target.result;renderPreview();}; r.readAsDataURL(f); });
+document.getElementById('brandLogoInput').addEventListener('change',e=>{
+  const f=e.target.files[0];
+  if(!f){state.brandLogo='';renderPreview();return;}
+  if(!/^image\//i.test(f.type)){ alert('กรุณาเลือกไฟล์รูปภาพ'); e.target.value=''; return; }
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=420;
+      const scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+      const w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+      const h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx=c.getContext('2d'); ctx.clearRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+      let data='';
+      try{ data=c.toDataURL('image/webp',0.82); }catch(_){ data=''; }
+      if(!data || data==='data:image/webp;base64,UklGR') data=c.toDataURL('image/png');
+      state.brandLogo=data;
+      renderPreview();
+    };
+    img.onerror=()=>{ state.brandLogo=ev.target.result; renderPreview(); };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(f);
+});
 document.getElementById('brandLogoSize').addEventListener('input',e=>{ state.brandLogoSize=parseInt(e.target.value); document.getElementById('brandLogoSizeVal').textContent=state.brandLogoSize; renderPreview(); });
 document.getElementById('brandNameInput').addEventListener('input',e=>{state.brandName=e.target.value;renderPreview();});
 document.getElementById('brandSloganInput').addEventListener('input',e=>{state.brandSlogan=e.target.value;renderPreview();});
