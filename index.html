@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="livrent-version" content="5.10.7">
-<!-- V5.10.7: browser back navigation for library folders -->
+<meta name="livrent-version" content="5.10.8">
+<!-- V5.10.8: logo storage fix and blank brand fields; preserves V5.10.7 navigation -->
 <title>LIVRENT | ระบบเอกสาร</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1236,9 +1236,9 @@ body.is-admin .folder-root-add-btn{display:inline-flex !important;align-items:ce
           <label><span data-i18n="frmLogoSize">ขนาดโลโก้</span> <span id="brandLogoSizeVal">56</span>px</label>
           <input type="range" id="brandLogoSize" min="28" max="140" step="2" value="56">
           <label data-i18n="frmBrandName">ชื่อแบรนด์</label>
-          <input type="text" id="brandNameInput" value="THE LIVING PLUS">
+          <input type="text" id="brandNameInput" value="">
           <label data-i18n="frmSlogan">สโลแกน</label>
-          <input type="text" id="brandSloganInput" value="Real Estate Advisory &amp; Brokerage">
+          <input type="text" id="brandSloganInput" value="">
         </div>
       </div>
 
@@ -2044,7 +2044,7 @@ function makeDefaultState(){
     whtMode:'none', whtPct:5,
     payMethod:'transfer', bankName:'', accName:'', accNumber:'',
     showBrand:false, brandLogo:'', brandLogoSize:56,
-    brandName:'THE LIVING PLUS', brandSlogan:'Real Estate Advisory & Brokerage',
+    brandName:'', brandSlogan:'',
     showQr:false, qrImage:'',
     signatureDataUrl:'', signatureName:'', signatureDate:'',
     autoNum:false,
@@ -3406,6 +3406,26 @@ async function saveDocument(){
   const stateClone = JSON.parse(JSON.stringify(state));
   const now = firebase.firestore.FieldValue.serverTimestamp();
   try {
+    // Logo files are kept in Firebase Storage. Firestore stores only the download URL.
+    // This prevents File/Blob-like nested data or oversized base64 payloads from being
+    // written into the document while keeping the live preview unchanged.
+    if(stateClone.brandLogo && /^data:image\//i.test(stateClone.brandLogo)){
+      const match = stateClone.brandLogo.match(/^data:([^;]+);base64,(.+)$/);
+      if(!match) throw new Error('รูปโลโก้ไม่ถูกต้อง');
+      const contentType = match[1] || 'image/png';
+      const base64 = match[2];
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      const blob = new Blob([bytes], {type:contentType});
+      const ext = (contentType.split('/')[1] || 'png').replace(/[^a-z0-9.+-]/gi,'');
+      const safeUid = String(currentUser.uid||'user').replace(/[^a-zA-Z0-9_-]/g,'_');
+      const safeDoc = String(currentDocId||('new_'+Date.now())).replace(/[^a-zA-Z0-9_-]/g,'_');
+      const path = `documents/${safeUid}/logos/${safeDoc}_${Date.now()}.${ext}`;
+      const uploadSnap = await storage.ref(path).put(blob, {contentType});
+      stateClone.brandLogo = await uploadSnap.ref.getDownloadURL();
+      stateClone.brandLogoStoragePath = path;
+    }
     if(currentDocId){
       const ref = db.collection('documents').doc(currentDocId);
       const snap = await ref.get();
